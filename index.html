@@ -162,7 +162,7 @@ const topIndustries=safe(d.industry_top).slice(0,3).map(r=>r.name);
 const topConcepts=safe(d.concept_top).slice(0,3).map(r=>r.name);
 
 // Sector strength with composite score
-const industryStrength=calcSectorStrength(d.industry_top,d.rotation);
+const industryStrength=calcSectorStrength(d.industry_top,dRotation);
 const topSectors=industryStrength.slice(0,5);
 const mainLine=industryStrength.filter(x=>x.cat==='strong');
 const riskSectors=industryStrength.filter(x=>x.cat==='risk');
@@ -172,9 +172,10 @@ const outflowSectors=safe(d.fund_flow?.sector_out).slice(0,2).map(x=>x.name);
 const inflowSectors=safe(d.fund_flow?.sector_in).slice(0,2).map(x=>x.name);
 
 // 5-day heatmap data
-const recentDays=d.rotation.slice(-5);
+const dRotation=d.rotation||[];
+const recentDays=dRotation.slice(-5);
 const heatSectors={};
-recentDays.forEach((day,i)=>{[['industry',day.industries||[]],['concept',day.concepts||[]]].forEach(([type,names]){safe(names).forEach(name=>{if(!heatSectors[name])heatSectors[name]={};heatSectors[name][i]=type==='industry'?2:1})})});
+recentDays.forEach((day,i)=>{[['industry',day.industries||[]],['concept',day.concepts||[]]].forEach(([type,names])=>{safe(names).forEach(name=>{if(!heatSectors[name])heatSectors[name]={};heatSectors[name][i]=type==='industry'?2:1})})});
 const topHeat=Object.entries(heatSectors).sort((a,b)=>{const va=Object.values(a[1]).reduce((s,v)=>s+v,0),vb=Object.values(b[1]).reduce((s,v)=>s+v,0);return vb-va}).slice(0,12);
 
 // Stock watch with tags
@@ -231,7 +232,7 @@ ${topHeat.length?`<div class="heatmap">${topHeat.map(([name,days])=>{const score
 
 <!-- ═══ 主线轮动时间轴 ═══ -->
 <section class="card span12"><div class="cardhead"><div><h2>主线轮动时间轴</h2><p>每日前三行业+概念</p></div><span class="badge badge-blue">近30日</span></div>
-<div class="timeline">${safe(d.rotation).map((r,i,a)=>`<div class="day ${i===a.length-1?'current':''}"><time>${esc(r.date)}</time><div class="chips">${safe(r.industries).map(x=>`<span class="chip">${esc(x)}</span>`).join('')}${safe(r.concepts).map(x=>`<span class="chip concept">${esc(x)}</span>`).join('')}</div></div>`).join('')||'<div class="empty">首次采集后开始记录</div>'}</section>
+<div class="timeline">${safe(dRotation).map((r,i,a)=>`<div class="day ${i===a.length-1?'current':''}"><time>${esc(r.date)}</time><div class="chips">${safe(r.industries).map(x=>`<span class="chip">${esc(x)}</span>`).join('')}${safe(r.concepts).map(x=>`<span class="chip concept">${esc(x)}</span>`).join('')}</div></div>`).join('')||'<div class="empty">首次采集后开始记录</div>'}</section>
 
 <!-- ═══ 实时资金流向 ═══ -->
 <section class="card span12"><div class="cardhead"><div><h2>实时资金流向</h2><p>东方财富分钟资金流</p></div></div>
