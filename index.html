@@ -153,6 +153,7 @@ function render(d){if(!d||d.empty||!d.meta||!d.meta.has_data){$('#app').innerHTM
 const m=d.market||{},s=d.sentiment||{},st=d.structure||{};
 
 // ─── Compute derived values ───
+const dRotation=d.rotation||[];
 const turnoverChg=m.turnover_change_pct;
 const volStatus=turnoverChg==null?'—':turnoverChg>5?'放量':turnoverChg<-5?'缩量':'平量';
 const tempStatus=m.temperature>=65?'偏强':m.temperature<40?'偏弱':'均衡';
@@ -172,7 +173,6 @@ const outflowSectors=safe(d.fund_flow?.sector_out).slice(0,2).map(x=>x.name);
 const inflowSectors=safe(d.fund_flow?.sector_in).slice(0,2).map(x=>x.name);
 
 // 5-day heatmap data
-const dRotation=d.rotation||[];
 const recentDays=dRotation.slice(-5);
 const heatSectors={};
 recentDays.forEach((day,i)=>{[['industry',day.industries||[]],['concept',day.concepts||[]]].forEach(([type,names])=>{safe(names).forEach(name=>{if(!heatSectors[name])heatSectors[name]={};heatSectors[name][i]=type==='industry'?2:1})})});
