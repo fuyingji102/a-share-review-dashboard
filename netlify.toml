@@ -1,0 +1,20 @@
+# Netlify 配置
+[build]
+  command = ""
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# 静态页面路由：根路径默认加载 index.html
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+# API 代理：资金流数据由 serverless function 处理
+[[redirects]]
+  from = "/api/live/fund-flow"
+  to = "/.netlify/functions/fund-flow"
+  status = 200

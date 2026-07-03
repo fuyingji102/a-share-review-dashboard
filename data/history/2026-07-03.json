@@ -1,0 +1,215 @@
+{
+  "trade_date": "2026-07-03",
+  "updated_at": "2026-07-03T11:53:40+08:00",
+  "market": {
+    "turnover": 2074123641700.1997,
+    "turnover_change_pct": 0.0,
+    "up_count": 3525,
+    "down_count": 1855,
+    "flat_count": 148,
+    "sample_count": 5528,
+    "temperature": 69
+  },
+  "sentiment": {
+    "limit_up_count": 75,
+    "limit_down_count": 16,
+    "max_board": 4,
+    "break_rate": null,
+    "ladder": [
+      {
+        "date": "2026-06-05",
+        "height": 5
+      },
+      {
+        "date": "2026-06-08",
+        "height": 6
+      },
+      {
+        "date": "2026-06-09",
+        "height": 3
+      },
+      {
+        "date": "2026-06-10",
+        "height": 4
+      },
+      {
+        "date": "2026-06-11",
+        "height": 3
+      },
+      {
+        "date": "2026-06-12",
+        "height": 4
+      },
+      {
+        "date": "2026-06-15",
+        "height": 3
+      },
+      {
+        "date": "2026-06-16",
+        "height": 4
+      },
+      {
+        "date": "2026-06-17",
+        "height": 3
+      },
+      {
+        "date": "2026-06-18",
+        "height": 4
+      },
+      {
+        "date": "2026-06-22",
+        "height": 5
+      },
+      {
+        "date": "2026-06-23",
+        "height": 5
+      },
+      {
+        "date": "2026-06-24",
+        "height": 4
+      },
+      {
+        "date": "2026-06-25",
+        "height": 5
+      },
+      {
+        "date": "2026-06-26",
+        "height": 6
+      },
+      {
+        "date": "2026-06-29",
+        "height": 3
+      },
+      {
+        "date": "2026-06-30",
+        "height": 3
+      },
+      {
+        "date": "2026-07-01",
+        "height": 3
+      },
+      {
+        "date": "2026-07-02",
+        "height": 4
+      },
+      {
+        "date": "2026-07-03",
+        "height": 4
+      }
+    ]
+  },
+  "industry_top": [
+    {
+      "thscode": "884218.TI",
+      "name": "机器人",
+      "change_pct": 8.326941,
+      "turnover": 22409455000.0
+    },
+    {
+      "thscode": "881169.TI",
+      "name": "贵金属",
+      "change_pct": 6.904141,
+      "turnover": 30376149000.0
+    },
+    {
+      "thscode": "881277.TI",
+      "name": "电机",
+      "change_pct": 5.213534,
+      "turnover": 9211618600.0
+    },
+    {
+      "thscode": "884292.TI",
+      "name": "其他汽车零部件",
+      "change_pct": 4.531576,
+      "turnover": 9892842700.0
+    },
+    {
+      "thscode": "884290.TI",
+      "name": "底盘与发动机系统",
+      "change_pct": 4.462147,
+      "turnover": 29632035000.0
+    }
+  ],
+  "concept_top": [
+    {
+      "thscode": "885999.TI",
+      "name": "汽车热管理",
+      "change_pct": 3.803556,
+      "turnover": 58012079000.0
+    },
+    {
+      "thscode": "885884.TI",
+      "name": "航空发动机",
+      "change_pct": 3.319239,
+      "turnover": 49229398000.0
+    },
+    {
+      "thscode": "885834.TI",
+      "name": "华为汽车",
+      "change_pct": 3.024703,
+      "turnover": 85679034000.0
+    },
+    {
+      "thscode": "885467.TI",
+      "name": "特斯拉概念",
+      "change_pct": 2.774582,
+      "turnover": 186668530000.0
+    },
+    {
+      "thscode": "885774.TI",
+      "name": "无线充电",
+      "change_pct": 2.565829,
+      "turnover": 36357460000.0
+    }
+  ],
+  "leaders": [
+    {
+      "thscode": "000725.SZ",
+      "name": "京东方A",
+      "last_price": 8.58,
+      "change_pct": -5.714286
+    },
+    {
+      "thscode": "001248.SZ",
+      "name": "华润新能源",
+      "last_price": 22.36,
+      "change_pct": -6.638831
+    },
+    {
+      "thscode": "600667.SH",
+      "name": "太极实业",
+      "last_price": 30.0,
+      "change_pct": 3.84216
+    },
+    {
+      "thscode": "002407.SZ",
+      "name": "多氟多",
+      "last_price": 49.41,
+      "change_pct": -9.868661
+    },
+    {
+      "thscode": "600584.SH",
+      "name": "长电科技",
+      "last_price": 92.7,
+      "change_pct": -3.417379
+    },
+    {
+      "thscode": "001399.SZ",
+      "name": "惠科股份",
+      "last_price": 42.14,
+      "change_pct": -9.995728
+    },
+    {
+      "thscode": "600206.SH",
+      "name": "有研新材",
+      "last_price": 55.6,
+      "change_pct": -3.822868
+    },
+    {
+      "thscode": "600707.SH",
+      "name": "彩虹股份",
+      "last_price": 15.15,
+      "change_pct": -9.227082
+    }
+  ]
+}
