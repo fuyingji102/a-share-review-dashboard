@@ -34,8 +34,7 @@ function httpsGet(url, params) {
     .join("&");
   const fullUrl = `${url}?${qs}`;
   return new Promise((resolve, reject) => {
-    https
-      .get(
+    const req = https.get(
         fullUrl,
         { headers: { "User-Agent": "Mozilla/5.0", Referer: "https://quote.eastmoney.com/" } },
         (res) => {
@@ -49,8 +48,9 @@ function httpsGet(url, params) {
             }
           });
         }
-      )
-      .on("error", reject);
+      );
+    req.setTimeout(8000, () => req.destroy(new Error("Upstream timeout")));
+    req.on("error", reject);
   });
 }
 
@@ -141,7 +141,7 @@ exports.handler = async (event) => {
       const sectorItems = [...topIn, ...topOut];
       const sectorSeries = {};
       const sectorNames = {};
-      for (const item of sectorItems) {
+      await Promise.all(sectorItems.map(async (item) => {
         try {
           const rows = await fetchFlowRows(`90.${item.code}`);
           sectorSeries[item.code] = rows.map((r) => ({
@@ -152,7 +152,7 @@ exports.handler = async (event) => {
         } catch {
           sectorSeries[item.code] = [];
         }
-      }
+      }));
 
       return {
         statusCode: 200,

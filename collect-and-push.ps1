@@ -9,6 +9,7 @@ $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $logFile = Join-Path $here "logs\push.log"
 $date = Get-Date -Format "yyyy-MM-dd"
+$python = Join-Path $here "..\..\work\Financial-API\.venv\Scripts\python.exe"
 
 # 确保 logs 目录存在
 $logDir = Split-Path $logFile -Parent
@@ -20,7 +21,11 @@ Log "===== 开始盘后采集：$date ====="
 
 # 1. 采集数据
 Log "正在采集..."
-$result = & python "$here\collect.py" 2>&1
+if (-not (Test-Path -LiteralPath $python)) {
+    Log "未找到项目 Python 环境：$python"
+    exit 1
+}
+$result = & $python "$here\collect.py" 2>&1
 $result | ForEach-Object { Log $_ }
 
 # 检查采集成败

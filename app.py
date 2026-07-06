@@ -426,12 +426,20 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/api/data":
             self.send_json(json.loads(CURRENT_FILE.read_text(encoding="utf-8")) if CURRENT_FILE.exists() else {"empty": True})
             return
+        if self.path in {"/api/live/fund-flow", "/api/fund-flow"}:
+            try:
+                payload = fetch_eastmoney_fund_flow()
+                payload["live"] = True
+                self.send_json(payload)
+            except Exception as exc:
+                self.send_json({"live": False, "error": str(exc)})
+            return
         if self.path == "/api/status":
             with STATE_LOCK:
                 self.send_json(dict(STATE))
             return
         if self.path == "/":
-            self.path = "/dashboard.html"
+            self.path = "/index.html"
         super().do_GET()
 
     def do_POST(self) -> None:

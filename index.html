@@ -168,6 +168,8 @@ function volumeProfile(row,history){const vals=safe(history).map(d=>safe(d.indus
 /* ── Flow SVG ── */
 const flowColors=['#78fff2','#818cf8','#39e6a3','#f59e0b','#ec4899','#5b9aff','#eab308','#ef4444'];
 function formatFlowTime(v){return(String(v||'')).slice(-5)}
+function flowTimestamp(flow){const rows=safe(flow?.market_rows),latest=flow?.market_latest||rows[rows.length-1]||{};return String(latest.time||'')}
+function sameTradingDay(a,b){return Boolean(a&&b&&String(a).slice(0,10)===String(b).slice(0,10))}
 function flowSvg(series){const values=series.flatMap(s=>safe(s.points).map(p=>Number(p.value))).filter(Number.isFinite);if(!values.length)return'<div class="empty">暂无</div>';const W=900,H=320,L=50,R=100,T=14,B=38,lo=Math.min(...values,0),hi=Math.max(...values,0),span=hi-lo||1;const x=(i,n)=>L+i/Math.max(1,n-1)*(W-L-R),y=v=>T+(hi-v)/span*(H-T-B);const paths=series.map((s,si)=>{const pts=safe(s.points);if(!pts.length)return'';const d=pts.map((p,i)=>`${i?'L':'M'}${x(i,pts.length).toFixed(1)} ${y(Number(p.value)).toFixed(1)}`).join(' ');return`<path d="${d}" fill="none" stroke="${s.color||flowColors[si%flowColors.length]}" stroke-width="1.8"/>`}).join('');const t=(series.find(s=>safe(s.points).length)||{}).points||[];const ticks=[0,.25,.5,.75,1].map(r=>Math.round(r*Math.max(0,t.length-1))).filter((v,i,a)=>a.indexOf(v)===i);const xLabels=ticks.map(i=>`<text x="${x(i,t.length)}" y="${H-6}" fill="#60748c" font-size="9" text-anchor="middle">${formatFlowTime(t[i]?.time)}</text>`).join('');const labels=series.slice(0,12).map((s,i)=>`<text x="${W-R+6}" y="${15+i*17}" fill="${s.color||flowColors[i%flowColors.length]}" font-size="9">${esc(s.name)} ${safe(s.points).length?Number(s.points[s.points.length-1].value).toFixed(1):'—'}</text>`).join('');return`<svg viewBox="0 0 ${W} ${H}">${[0,.25,.5,.75,1].map(t=>{const v=hi-span*t,yy=y(v);return`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#182434"/><text x="${L-5}" y="${yy+3}" fill="#60748c" font-size="8" text-anchor="end">${v.toFixed(1)}</text>`}).join('')}<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="#394a60" stroke-width="1"/>${paths}${xLabels}${labels}</svg>`}
 
 /* ── Render flow panel ── */
@@ -207,7 +209,10 @@ const topHeat=Object.entries(heatSectors).sort((a,b)=>{const va=Object.values(a[
 
 // Stock watch with tags
 const watchStocks=safe(d.leaders).slice(0,8).map(s=>{const org=d.org_top||[];return{...s,tags:classifyTags(s,d.leaders,org)}});
-const regime=computeRegime(m,s,d.fund_flow);
+const liveFlowTime=flowTimestamp(d.fund_flow);
+const liveMatchesSnapshot=sameTradingDay(liveFlowTime,d.meta.market_date);
+const decisionFlow=liveMatchesSnapshot?d.fund_flow:(d.snapshot_fund_flow||d.fund_flow);
+const regime=computeRegime(m,s,decisionFlow);
 const leaderRows=buildLeaderRows(d.leaders,d.org_top);
 const mainTrend=topSectors[0]||{};
 const mainTrendStars=starText(mainTrend.score);
@@ -215,7 +220,7 @@ const volProfile=volumeProfile(mainTrend,d.history);
 const tomorrowFocus=[mainTrend.name,topSectors[1]?.name,leaderRows[0]?.name].filter(Boolean).slice(0,3);
 
 // ─── Build HTML ───
-$('#meta').textContent=`${d.meta.market_date} · ${fmt(m.turnover)} · 温度${m.temperature} · ${m.sample_count||0}只`;
+$('#meta').textContent=`主体快照 ${d.meta.market_date} · ${fmt(m.turnover)} · 温度${m.temperature} · ${m.sample_count||0}只${liveFlowTime?' · 资金 '+liveFlowTime.slice(5,16):''}`;
 
 let html=`
 <!-- ═══ 第一屏：今日结论 ═══ -->
@@ -223,7 +228,7 @@ let html=`
   <div class="executive-top"><h2>Today · 交易决策摘要</h2><span class="asof">AS OF ${esc(d.meta.market_date)} CLOSE</span></div>
   <div class="decision-grid">
     <div class="decision-cell"><div class="decision-label">Market Regime</div><div class="decision-value regime-${regime.key}"><span class="regime-dot"></span>${regime.name}</div><div class="decision-note">${regime.cn} · ${regime.note}</div></div>
-    <div class="decision-cell"><div class="decision-label">Capital Rotation</div><div class="rotation-chain"><span class="rotation-pill out">${esc(outflowSectors[0]||'流出待确认')}</span><i>→</i><span class="rotation-pill">资金再分配</span><i>→</i><span class="rotation-pill in">${esc(inflowSectors[0]||'流入待确认')}</span></div><div class="decision-note">次级流向：${esc(outflowSectors[1]||'—')} → ${esc(inflowSectors[1]||'—')}；按板块净额观察，非逐笔资金追踪。</div></div>
+    <div class="decision-cell"><div class="decision-label">Capital Rotation</div><div class="rotation-chain"><span class="rotation-pill out">${esc(outflowSectors[0]||'流出待确认')}</span><i>→</i><span class="rotation-pill">资金再分配</span><i>→</i><span class="rotation-pill in">${esc(inflowSectors[0]||'流入待确认')}</span></div><div class="decision-note">次级流向：${esc(outflowSectors[1]||'—')} → ${esc(inflowSectors[1]||'—')}；${liveMatchesSnapshot?'与主体快照同日':'实时资金与主体快照非同日，仅供盘中观察，不参与 Regime 计算'}。</div></div>
     <div class="decision-cell"><div class="decision-label">Current Main Trend</div><div class="decision-value">${esc(mainTrend.name||'待确认')}</div><div class="starline">${mainTrendStars}</div><div class="decision-note">强度 ${Number(mainTrend.score||0).toFixed(1)} · ${esc(mainTrend.catLabel||'样本不足')}</div></div>
     <div class="decision-cell"><div class="decision-label">Market Temperature</div><div class="decision-value" style="font-family:var(--font-mono)">${m.temperature||0}<small style="font-size:11px;color:var(--muted)"> / 100</small></div><div class="decision-note">${tempStatus} · ${breadthLabel}<br>红盘 ${(regime.breadth*100).toFixed(0)}%</div></div>
     <div class="decision-cell"><div class="decision-label">Tomorrow Focus</div><ol class="focus-list">${tomorrowFocus.map((x,i)=>`<li><b>${i+1}</b>${esc(x)}</li>`).join('')||'<li>等待有效行情</li>'}</ol><div class="decision-note">观察触发条件，不作为开仓指令。</div></div>
@@ -304,15 +309,29 @@ renderFlowPanel(d.fund_flow);
    ═══════════════════════════════════════════════ */
 async function tryFetch(u){try{return await fetch(u,{cache:'no-store'}).then(r=>r.json())}catch(e){return null}}
 async function fetchLiveFundFlow(){return tryFetch('/api/live/fund-flow')||tryFetch('/api/fund-flow')}
+let livePollBusy=false;
+async function updateLiveFlow(d){
+  if(livePollBusy)return;
+  livePollBusy=true;
+  $('#status').textContent='正在更新实时资金…';
+  const live=await fetchLiveFundFlow();
+  if(live&&live.live!==false){
+    d.fund_flow=live;
+    const ts=flowTimestamp(live);
+    $('#status').textContent=`资金实时 ${ts?ts.slice(5,16):'已更新'} · 主体 ${d.meta.market_date}`;
+    render(d);
+  }else{$('#status').textContent=`实时资金暂不可用 · 主体 ${d.meta.market_date}`}
+  livePollBusy=false;
+}
 async function load(){
   let d=window.DASHBOARD_DATA||await tryFetch('/api/data')||await tryFetch('./data/dashboard-data.json');
   if(!d||d.empty){$('#status').textContent='无法加载数据';$('#app').innerHTML='<div class="card span12 empty"><h2 style="font-size:15px;margin:0 0 6px">无法加载数据</h2><p>请通过 HTTP 服务器访问此页面，或推送后通过 Netlify 访问。</p></div>';return}
   // First paint must never wait for the serverless live-flow proxy.
+  d.snapshot_fund_flow=d.fund_flow;
   $('#status').textContent='盘后快照已加载';
   render(d);
-  let live=await fetchLiveFundFlow();
-  if(live&&live.live!==false){d.fund_flow=live;$('#status').textContent='含实时资金流'}
-  if(live&&live.live!==false)render(d);
+  await updateLiveFlow(d);
+  setInterval(()=>updateLiveFlow(d),30000);
 }
 load();
 </script></body></html>

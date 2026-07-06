@@ -11,7 +11,7 @@
 
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$python = "python"
+$python = Join-Path $here "..\..\work\Financial-API\.venv\Scripts\python.exe"
 $collectScript = Join-Path $here "collect.py"
 $pushScript = Join-Path $here "collect-and-push.ps1"
 $serverScript = Join-Path $here "app.py"
@@ -66,8 +66,7 @@ if ($usePush) {
     $collectAction = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c cd /d `"$here`" && $python `"$collectScript`" >> `"$logDir\collect.log`" 2>&1"
 }
 
-$collectTrigger = New-ScheduledTaskTrigger -Daily -At "15:30"
-$collectTrigger.DaysOfWeek = "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+$collectTrigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 1 -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At "15:30"
 $collectSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 
 try {
