@@ -6,7 +6,7 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -18,6 +18,7 @@ import requests
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 HISTORY_DIR = DATA_DIR / "history"
+MEMORY_DIR = DATA_DIR / "memory"
 CURRENT_FILE = DATA_DIR / "dashboard-data.json"
 PERSISTENCE_FILE = DATA_DIR / "sector-persistence.json"
 BASE_URL = "https://fuyao.aicubes.cn"
@@ -28,6 +29,8 @@ PORT = int(os.getenv("DASHBOARD_PORT", "8765"))
 
 STATE: dict[str, Any] = {"refreshing": False, "message": "等待刷新", "updated_at": None}
 STATE_LOCK = threading.Lock()
+LIVE_CACHE: dict[str, Any] = {"time": 0.0, "payload": None}
+LIVE_CACHE_LOCK = threading.Lock()
 HTTP_SESSION = requests.Session()
 # Codex's restricted command environment injects a deliberately dead local
 # proxy. Ignore only that sentinel; preserve genuine user/corporate proxies.
@@ -215,6 +218,134 @@ def fetch_eastmoney_fund_flow() -> dict[str, Any]:
         "sector_series": sector_series,
         "sector_names": {item["code"]: item["name"] for item in sector_items},
     }
+
+
+def persist_market_memory(payload: dict[str, Any]) -> None:
+    timestamp = str((payload.get("meta") or {}).get("updated_at") or datetime.now().astimezone().isoformat(timespec="seconds"))
+    trade_date = timestamp[:10]
+    minute = timestamp[11:16]
+    if not trade_date or not minute:
+        return
+    hour, minute_value = [int(part) for part in minute.split(":")]
+    bucket = f"{hour:02d}:{(minute_value // 5) * 5:02d}"
+    MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+    path = MEMORY_DIR / f"{trade_date}.json"
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    except Exception:
+        rows = []
+    flow = payload.get("fund_flow") or {}
+    compact = {
+        "time": f"{trade_date} {bucket}",
+        "market": payload.get("market") or {},
+        "sentiment": payload.get("sentiment") or {},
+        "main_net": number((flow.get("market_latest") or {}).get("main")),
+        "sector_in": (flow.get("sector_in") or [])[:8],
+        "sector_out": (flow.get("sector_out") or [])[:8],
+    }
+    rows = [row for row in rows if row.get("time") != compact["time"]]
+    rows.append(compact)
+    rows.sort(key=lambda row: row.get("time", ""))
+    path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    cutoff = (datetime.now().astimezone().date() - timedelta(days=35)).isoformat()
+    for old_path in MEMORY_DIR.glob("20??-??-??.json"):
+        if old_path.stem < cutoff:
+            old_path.unlink(missing_ok=True)
+
+
+def load_market_memory(days: int = 30) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    if MEMORY_DIR.exists():
+        for path in sorted(MEMORY_DIR.glob("20??-??-??.json"))[-max(1, min(days, 30)):]:
+            try:
+                rows.extend(json.loads(path.read_text(encoding="utf-8")))
+            except Exception:
+                continue
+    return {"days": days, "count": len(rows), "rows": rows}
+
+
+def previous_same_time_turnover(now: datetime) -> float | None:
+    bucket = f"{now.hour:02d}:{(now.minute // 5) * 5:02d}"
+    today = now.date().isoformat()
+    candidates = [
+        row for row in load_market_memory(30)["rows"]
+        if str(row.get("time", ""))[:10] < today
+        and str(row.get("time", ""))[-5:] == bucket
+        and number((row.get("market") or {}).get("turnover")) > 0
+    ]
+    if not candidates:
+        return None
+    return number((candidates[-1].get("market") or {}).get("turnover"))
+
+
+def fetch_live_overview(force: bool = False) -> dict[str, Any]:
+    with LIVE_CACHE_LOCK:
+        if not force and LIVE_CACHE["payload"] and time.time() - LIVE_CACHE["time"] < 25:
+            return LIVE_CACHE["payload"]
+    jobs = {
+        "market": ("/api/a-share/prices/snapshot", {"limit": 10000, "offset": 0}),
+        "limit_up": ("/api/a-share/special-data/limit-up-pool", {"page": 1, "size": 200, "sort_field": "continue_day_cnt", "sort_dir": "desc"}),
+        "limit_down": ("/api/a-share/special-data/anomaly-analysis-list", {"tag_codes": "LIMIT_DOWN"}),
+        "hot": ("/api/a-share/special-data/hot-stock-list", {"period": "day"}),
+    }
+    raw: dict[str, Any] = {}
+    errors: list[str] = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(safe_call, name, path, params) for name, (path, params) in jobs.items()]
+        fund_future = executor.submit(fetch_eastmoney_fund_flow)
+        for future in as_completed(futures):
+            name, value, error = future.result()
+            raw[name] = value or {}
+            if error:
+                errors.append(f"{name}: {error}")
+        try:
+            fund_flow = fund_future.result()
+        except Exception as exc:
+            fund_flow = {"error": str(exc)}
+            errors.append(f"fund_flow: {exc}")
+    market_rows = items(raw.get("market") or {})
+    turnover = sum(number(row.get("turnover")) for row in market_rows)
+    up_count = sum(number(row.get("price_change_ratio_pct")) > 0 for row in market_rows)
+    down_count = sum(number(row.get("price_change_ratio_pct")) < 0 for row in market_rows)
+    flat_count = max(0, len(market_rows) - up_count - down_count)
+    limit_payload = raw.get("limit_up") or {}
+    limit_rows = items(limit_payload)
+    limit_total = int(number((limit_payload.get("pagination") or {}).get("total"), len(limit_rows)))
+    limit_down_rows = items(raw.get("limit_down") or {})
+    max_board = max([int(number(row.get("continue_day_cnt"), 1)) for row in limit_rows] or [0])
+    # Intraday cumulative turnover is compared only with the prior trading day
+    # at the same five-minute bucket from Memory Palace.
+    now_local = datetime.now().astimezone()
+    baseline_turnover = previous_same_time_turnover(now_local)
+    turnover_change_pct = ((turnover / baseline_turnover - 1) * 100) if turnover and baseline_turnover else None
+    breadth = up_count / max(1, up_count + down_count)
+    temperature = round(max(0, min(100, 50 + (breadth - 0.5) * 55 + min(limit_total, 100) * 0.15)))
+    market_timestamp = number((raw.get("market") or {}).get("timestamp"))
+    market_seconds = market_timestamp / 1000 if market_timestamp > 10_000_000_000 else market_timestamp
+    market_date = datetime.fromtimestamp(market_seconds).astimezone().strftime("%Y-%m-%d") if market_seconds else datetime.now().astimezone().strftime("%Y-%m-%d")
+    quotes = {row.get("thscode"): row for row in market_rows}
+    leaders = []
+    for row in items(raw.get("hot") or {})[:8]:
+        quote = quotes.get(row.get("thscode"), {})
+        leaders.append({
+            "thscode": row.get("thscode"), "name": row.get("name") or row.get("thscode"),
+            "rank": row.get("rank"), "heat": row.get("heat"),
+            "last_price": number(quote.get("last_price")),
+            "change_pct": number(quote.get("price_change_ratio_pct")),
+            "tags": row.get("tags") or [], "trend": [],
+        })
+    payload = {
+        "live": True,
+        "meta": {"market_date": market_date, "updated_at": now_local.isoformat(timespec="seconds"), "errors": errors},
+        "market": {"turnover": turnover, "turnover_change_pct": turnover_change_pct, "up_count": up_count, "down_count": down_count, "flat_count": flat_count, "sample_count": len(market_rows), "temperature": temperature},
+        "sentiment": {"limit_up_count": limit_total, "limit_down_count": len(limit_down_rows), "max_board": max_board, "break_rate": None},
+        "fund_flow": fund_flow,
+        "leaders": leaders,
+    }
+    persist_market_memory(payload)
+    with LIVE_CACHE_LOCK:
+        LIVE_CACHE.update(time=time.time(), payload=payload)
+    return payload
 
 
 def fetch_eastmoney_sector_detail(code: str, name: str = "") -> dict[str, Any]:
@@ -577,6 +708,9 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/data":
             self.send_json(json.loads(CURRENT_FILE.read_text(encoding="utf-8")) if CURRENT_FILE.exists() else {"empty": True})
             return
+        if parsed.path == "/api/memory":
+            self.send_json(load_market_memory(int(number((query.get("days") or ["30"])[0], 30))))
+            return
         if parsed.path in {"/api/live/fund-flow", "/api/fund-flow"}:
             try:
                 mode = (query.get("mode") or ["market"])[0]
@@ -585,6 +719,8 @@ class Handler(SimpleHTTPRequestHandler):
                         (query.get("code") or [""])[0].upper(),
                         (query.get("name") or [""])[0],
                     )
+                elif mode == "overview":
+                    payload = fetch_live_overview()
                 else:
                     payload = fetch_eastmoney_fund_flow()
                 payload["live"] = True

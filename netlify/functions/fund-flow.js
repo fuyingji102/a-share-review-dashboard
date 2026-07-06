@@ -14,6 +14,7 @@ const https = require("https");
 const EAST_FLOW_URL =
   "https://push2delay.eastmoney.com/api/qt/stock/fflow/kline/get";
 const EAST_RANK_URL = "https://push2delay.eastmoney.com/api/qt/clist/get";
+const FUYAO_BASE_URL = "https://fuyao.aicubes.cn";
 
 // 节流缓存（30秒内重复请求不重复调用东方财富）
 const cache = { ttl: 30_000, data: {}, time: 0 };
@@ -28,7 +29,7 @@ function cached(key, fn) {
 }
 
 /** HTTPS GET 返回 JSON */
-function httpsGet(url, params) {
+function httpsGet(url, params, extraHeaders = {}) {
   const qs = Object.entries(params || {})
     .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
     .join("&");
@@ -36,12 +37,13 @@ function httpsGet(url, params) {
   return new Promise((resolve, reject) => {
     const req = https.get(
         fullUrl,
-        { headers: { "User-Agent": "Mozilla/5.0", Referer: "https://quote.eastmoney.com/" } },
+        { headers: { "User-Agent": "Mozilla/5.0", Referer: "https://quote.eastmoney.com/", ...extraHeaders } },
         (res) => {
           let data = "";
           res.on("data", (c) => (data += c));
           res.on("end", () => {
             try {
+              if ((res.statusCode || 500) >= 400) throw new Error(`HTTP ${res.statusCode}`);
               resolve(JSON.parse(data));
             } catch (e) {
               reject(new Error("Parse error"));
@@ -52,6 +54,18 @@ function httpsGet(url, params) {
     req.setTimeout(8000, () => req.destroy(new Error("Upstream timeout")));
     req.on("error", reject);
   });
+}
+
+async function fuyaoGet(path, params) {
+  const token = process.env.FUYAO_TOKEN || process.env.API_KEY;
+  if (!token) throw new Error("FUYAO_TOKEN is not configured in Netlify environment variables");
+  const envelope = await httpsGet(`${FUYAO_BASE_URL}${path}`, params, {
+    "X-api-key": token,
+    Accept: "application/json",
+    Referer: FUYAO_BASE_URL,
+  });
+  if (envelope.code !== 0) throw new Error(`Fuyao ${envelope.code}: ${envelope.message}`);
+  return envelope.data || {};
 }
 
 /** 获取单只标的分钟资金流 */
@@ -119,6 +133,57 @@ async function fetchSectorConstituents(code) {
   }));
 }
 
+function combineMarketFlow(sh, sz) {
+  const byTime = {};
+  for (const source of [sh, sz]) {
+    for (const item of source) {
+      const row = byTime[item.time] || { time: item.time, main: 0, small: 0, medium: 0, big: 0, super: 0 };
+      for (const field of ["main", "small", "medium", "big", "super"]) row[field] += item[field];
+      byTime[item.time] = row;
+    }
+  }
+  return Object.values(byTime).sort((a, b) => a.time.localeCompare(b.time));
+}
+
+async function fetchLiveOverview() {
+  const [marketData, limitData, downData, hotData, sh, sz, topIn, topOut] = await Promise.all([
+    fuyaoGet("/api/a-share/prices/snapshot", { limit: "10000", offset: "0" }),
+    fuyaoGet("/api/a-share/special-data/limit-up-pool", { page: "1", size: "200", sort_field: "continue_day_cnt", sort_dir: "desc" }),
+    fuyaoGet("/api/a-share/special-data/anomaly-analysis-list", { tag_codes: "LIMIT_DOWN" }),
+    fuyaoGet("/api/a-share/special-data/hot-stock-list", { period: "day" }),
+    fetchFlowRows("1.000001"), fetchFlowRows("0.399001"),
+    fetchSectorRanking(true), fetchSectorRanking(false),
+  ]);
+  const stocks = marketData.item || [];
+  const turnover = stocks.reduce((sum, row) => sum + Number(row.turnover || 0), 0);
+  const upCount = stocks.filter((row) => Number(row.price_change_ratio_pct || 0) > 0).length;
+  const downCount = stocks.filter((row) => Number(row.price_change_ratio_pct || 0) < 0).length;
+  const flatCount = Math.max(0, stocks.length - upCount - downCount);
+  const limitRows = limitData.item || [];
+  const limitTotal = Number((limitData.pagination || {}).total || limitRows.length);
+  const downRows = downData.item || [];
+  const maxBoard = limitRows.reduce((max, row) => Math.max(max, Number(row.continue_day_cnt || 1)), 0);
+  const breadth = upCount / Math.max(1, upCount + downCount);
+  const temperature = Math.round(Math.max(0, Math.min(100, 50 + (breadth - 0.5) * 55 + Math.min(limitTotal, 100) * 0.15)));
+  const marketRows = combineMarketFlow(sh, sz);
+  const latest = marketRows[marketRows.length - 1] || {};
+  const rawTimestamp = Number(marketData.timestamp || Date.now());
+  const marketDate = new Date(rawTimestamp > 1e12 ? rawTimestamp : rawTimestamp * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
+  const quotes = Object.fromEntries(stocks.map((row) => [row.thscode, row]));
+  const leaders = (hotData.item || []).slice(0, 8).map((row) => {
+    const quote = quotes[row.thscode] || {};
+    return { thscode: row.thscode, name: row.name || row.thscode, rank: row.rank, heat: row.heat, last_price: Number(quote.last_price || 0), change_pct: Number(quote.price_change_ratio_pct || 0), tags: row.tags || [], trend: [] };
+  });
+  return {
+    live: true,
+    meta: { market_date: marketDate, updated_at: new Date().toISOString(), errors: [] },
+    market: { turnover, turnover_change_pct: null, up_count: upCount, down_count: downCount, flat_count: flatCount, sample_count: stocks.length, temperature },
+    sentiment: { limit_up_count: limitTotal, limit_down_count: downRows.length, max_board: maxBoard, break_rate: null },
+    fund_flow: { source: "东方财富 push2delay", market_rows: marketRows, market_latest: latest, sector_in: topIn, sector_out: topOut, sector_series: {}, sector_names: Object.fromEntries([...topIn, ...topOut].map((x) => [x.code, x.name])) },
+    leaders,
+  };
+}
+
 exports.handler = async (event) => {
   const mode = event.queryStringParameters.mode || "market";
 
@@ -133,7 +198,10 @@ exports.handler = async (event) => {
   }
 
   try {
-    if (mode === "market") {
+    if (mode === "overview") {
+      const overview = await cached("overview", fetchLiveOverview);
+      return { statusCode: 200, headers, body: JSON.stringify(overview) };
+    } else if (mode === "market") {
       // ====== 大盘资金流 ======
       const [sh, sz, topIn, topOut] = await Promise.all([
         fetchFlowRows("1.000001"),

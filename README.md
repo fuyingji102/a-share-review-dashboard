@@ -11,6 +11,15 @@
 
 板块角色由实时资金、涨幅、成交额、换手、市值等字段量化生成；政策、公告、订单和产业链标签在事件源接入前不会自动臆测。
 
+## 全市场实时模式与 Memory Palace
+
+- 本地服务通过 `/api/live/fund-flow?mode=overview` 每30秒获取全市场行情、涨跌家数、成交额、涨跌停、连板、热股与资金流。
+- 本地每5分钟写入 `data/memory/YYYY-MM-DD.json`，滚动保留35个自然日；接口 `/api/memory?days=30` 可读取最近30日。
+- 浏览器同时在 localStorage 保存最近30日紧凑快照，Netlify 静态站无需数据库也能在当前设备形成市场记忆。
+- 成交额变化只与上一交易日同一5分钟比较；没有历史基线时显示为空，不使用盘中累计额对比昨日收盘额。
+
+Netlify 的全市场实时模式需要在站点环境变量中配置 `FUYAO_TOKEN`。Token 只在 Serverless Function 中读取，不会打包进前端。若未配置，页面自动降级为仅东方财富资金实时。
+
 ## 快速打开（无需 API Key）
 
 双击 **`serve.cmd`**，然后访问 <http://127.0.0.1:8765> —— 页面会加载 `data/dashboard-data.json` 中已有的快照数据，无需同花顺 API Key。

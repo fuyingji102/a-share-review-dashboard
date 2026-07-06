@@ -175,15 +175,19 @@ function volumeProfile(row,history){const vals=safe(history).map(d=>safe(d.indus
 
 function sectorHref(row){return`/sector/${encodeURIComponent(row.code)}?name=${encodeURIComponent(row.name||row.code)}`}
 function stockHref(row,sector){return`/stock/${encodeURIComponent(row.code)}?sector=${encodeURIComponent(sector.code)}&sectorName=${encodeURIComponent(sector.name)}&name=${encodeURIComponent(row.name||row.code)}`}
+const MARKET_MEMORY_KEY='a-share-market-palace:v1';
+function readMarketPalace(){try{return JSON.parse(localStorage.getItem(MARKET_MEMORY_KEY)||'[]')}catch{return[]}}
+function rememberMarketPalace(d){try{const ts=flowTimestamp(d.fund_flow)||d.meta?.live_updated_at||new Date().toISOString(),date=String(ts).slice(0,10),hm=String(ts).slice(11,16);if(!date||!hm)return;const [h,m]=hm.split(':').map(Number),bucket=`${date} ${String(h).padStart(2,'0')}:${String(Math.floor(m/5)*5).padStart(2,'0')}`;const entry={time:bucket,market:d.market,sentiment:d.sentiment,main:Number(d.fund_flow?.market_latest?.main||0),sector_in:safe(d.fund_flow?.sector_in).slice(0,8),sector_out:safe(d.fund_flow?.sector_out).slice(0,8)};const cutoff=Date.now()-30*864e5,rows=readMarketPalace().filter(x=>x.time!==bucket&&new Date(x.time.replace(' ','T')).getTime()>=cutoff);rows.push(entry);localStorage.setItem(MARKET_MEMORY_KEY,JSON.stringify(rows.slice(-2400)))}catch{}}
+function marketPalaceStats(){const rows=readMarketPalace(),days=new Set(rows.map(x=>String(x.time).slice(0,10))).size;return{count:rows.length,days}}
 function strengthWord(value,max){const r=Math.abs(Number(value||0))/Math.max(1,max);return r>.68?'强':r>.36?'中':'弱'}
 function liveBarsHtml(rows,type){const list=safe(rows).slice(0,6),max=Math.max(...list.map(x=>Math.abs(Number(x.value||0))),1);if(!list.length)return'<div class="empty">等待实时数据</div>';return list.map(r=>`<a class="sector-live-row" href="${sectorHref(r)}" target="_blank" rel="noopener"><b>${esc(r.name)}</b><span class="sector-live-track"><i class="sector-live-fill ${type==='out'?'out':''}" style="display:block;width:${Math.max(4,Math.abs(Number(r.value||0))/max*100)}%"></i></span><em class="${type==='out'?'down':'up'}">${type==='out'?'-':'+'}${Math.abs(Number(r.value||0)).toFixed(1)}亿</em></a>`).join('')}
 function marketSession(ts){const hm=String(ts||'').slice(11,16);if(hm>='09:15'&&hm<='09:25')return'集合竞价';if(hm>='09:30'&&hm<'10:00')return'开盘定向';if(hm>='10:00'&&hm<'11:30')return'早盘博弈';if(hm>='13:00'&&hm<'14:30')return'午后交易';if(hm>='14:30'&&hm<='15:00')return'尾盘定价';return'最近快照'}
-function realtimeOverviewHtml(d,m,s,industryStrength){const f=d.fund_flow||{},ins=safe(f.sector_in),outs=safe(f.sector_out),ts=flowTimestamp(f),top=ins[0]||{},maxIn=Math.max(...ins.map(x=>Math.abs(Number(x.value||0))),1),main=Number(f.market_latest?.main||0);return`<section class="card span12 live-radar"><div class="radar-title"><div><h2><span class="live-dot"></span>盘中实时交易雷达</h2><p>资金正在切向哪里，点击板块查看内部角色与还能关注的标的</p></div><span class="asof">${esc(ts||'等待实时接口')}</span></div><div class="six-radar">
+function realtimeOverviewHtml(d,m,s,industryStrength){const f=d.fund_flow||{},ins=safe(f.sector_in),outs=safe(f.sector_out),ts=flowTimestamp(f),top=ins[0]||{},maxIn=Math.max(...ins.map(x=>Math.abs(Number(x.value||0))),1),main=Number(f.market_latest?.main||0),memory=marketPalaceStats();return`<section class="card span12 live-radar"><div class="radar-title"><div><h2><span class="live-dot"></span>盘中实时交易雷达</h2><p>资金正在切向哪里，点击板块查看内部角色与还能关注的标的</p></div><span class="asof">${esc(ts||'等待实时接口')} · Memory ${memory.count}帧/${memory.days}日</span></div><div class="six-radar">
 <div class="radar-card"><h3>09:15–09:25 集合竞价雷达</h3><div class="radar-big">${marketSession(ts)==='集合竞价'?'监控中':'非竞价时段'}</div><div class="radar-meta">竞价逐笔与昨日预期模型待接入；当前不使用开盘后数据倒推竞价结论。</div></div>
 <div class="radar-card"><h3>09:30–10:00 开盘资金方向</h3><div class="radar-big">${esc(ins.slice(0,2).map(x=>x.name).join(' · ')||'等待')}</div><div class="radar-meta">${marketSession(ts)} · 主力 <span class="${cls(main)}">${main.toFixed(1)}亿</span></div></div>
 <div class="radar-card"><h3>实时主线强度</h3><div class="radar-big">${esc(top.name||'待确认')} · ${strengthWord(top.value,maxIn)}</div><div class="radar-meta">净流入 ${Number(top.value||0).toFixed(1)}亿；点击进入板块决策页</div></div>
 <div class="radar-card wide"><h3>板块实时流入 / 流出 Bar</h3><div class="live-bars"><div><div class="live-bar-title up">实时流入 TOP</div>${liveBarsHtml(ins,'in')}</div><div><div class="live-bar-title down">实时流出 TOP</div>${liveBarsHtml(outs,'out')}</div></div></div>
-<div class="radar-card"><h3>连板与情绪周期</h3><div class="radar-big">${s.max_board??'—'}板 · ${s.limit_up_count??'—'}涨停</div><div class="radar-meta">主体数据日期 ${esc(d.meta.market_date)}；晋级率与实时炸板率待接入。</div></div>
+<div class="radar-card"><h3>连板与情绪周期</h3><div class="radar-big">${s.max_board??'—'}板 · ${s.limit_up_count??'—'}涨停</div><div class="radar-meta">${d.meta.live_updated_at?'实时':'基础'}数据日期 ${esc(d.meta.market_date)}；晋级率与实时炸板率待接入。</div></div>
 <div class="radar-card"><h3>高标风险</h3><div class="radar-big ${Number(s.limit_down_count)>10?'down':''}">${s.limit_down_count??'—'} 跌停</div><div class="radar-meta">高标状态需实时涨停池确认；不同日期数据不参与盘中混合判断。</div></div>
 </div></section>`}
 
@@ -267,7 +271,7 @@ const volProfile=volumeProfile(mainTrend,d.history);
 const tomorrowFocus=[mainTrend.name,topSectors[1]?.name,leaderRows[0]?.name].filter(Boolean).slice(0,3);
 
 // ─── Build HTML ───
-$('#meta').textContent=`主体快照 ${d.meta.market_date} · ${fmt(m.turnover)} · 温度${m.temperature} · ${m.sample_count||0}只${liveFlowTime?' · 资金 '+liveFlowTime.slice(5,16):''}`;
+$('#meta').textContent=d.meta.live_updated_at?`全市场实时 ${d.meta.market_date} · ${fmt(m.turnover)} · 温度${m.temperature} · ${m.sample_count||0}只 · 更新 ${liveFlowTime?liveFlowTime.slice(5,16):String(d.meta.live_updated_at).slice(5,16)}`:`基础统计（上次采集 ${d.meta.market_date}）· ${fmt(m.turnover)} · 温度${m.temperature}${liveFlowTime?' · 资金 '+liveFlowTime.slice(5,16):''}`;
 
 let html=`
 ${realtimeOverviewHtml(d,m,s,industryStrength)}
@@ -276,7 +280,7 @@ ${realtimeOverviewHtml(d,m,s,industryStrength)}
   <div class="executive-top"><h2>Today · 交易决策摘要</h2><span class="asof">AS OF ${esc(d.meta.market_date)} CLOSE</span></div>
   <div class="decision-grid">
     <div class="decision-cell"><div class="decision-label">Market Regime</div><div class="decision-value regime-${regime.key}"><span class="regime-dot"></span>${regime.name}</div><div class="decision-note">${regime.cn} · ${regime.note}</div></div>
-    <div class="decision-cell"><div class="decision-label">Capital Rotation</div><div class="rotation-chain"><span class="rotation-pill out">${esc(outflowSectors[0]||'流出待确认')}</span><i>→</i><span class="rotation-pill">资金再分配</span><i>→</i><span class="rotation-pill in">${esc(inflowSectors[0]||'流入待确认')}</span></div><div class="decision-note">次级流向：${esc(outflowSectors[1]||'—')} → ${esc(inflowSectors[1]||'—')}；${liveMatchesSnapshot?'与主体快照同日':'实时资金与主体快照非同日，仅供盘中观察，不参与 Regime 计算'}。</div></div>
+    <div class="decision-cell"><div class="decision-label">Capital Rotation</div><div class="rotation-chain"><span class="rotation-pill out">${esc(outflowSectors[0]||'流出待确认')}</span><i>→</i><span class="rotation-pill">资金再分配</span><i>→</i><span class="rotation-pill in">${esc(inflowSectors[0]||'流入待确认')}</span></div><div class="decision-note">次级流向：${esc(outflowSectors[1]||'—')} → ${esc(inflowSectors[1]||'—')}；${d.meta.live_updated_at?'全市场与资金均为实时口径':liveMatchesSnapshot?'基础统计与资金同日':'资金与基础统计非同日，仅供盘中观察'}。</div></div>
     <div class="decision-cell"><div class="decision-label">Current Main Trend</div><div class="decision-value">${esc(mainTrend.name||'待确认')}</div><div class="starline">${mainTrendStars}</div><div class="decision-note">强度 ${Number(mainTrend.score||0).toFixed(1)} · ${esc(mainTrend.catLabel||'样本不足')}</div></div>
     <div class="decision-cell"><div class="decision-label">Market Temperature</div><div class="decision-value" style="font-family:var(--font-mono)">${m.temperature||0}<small style="font-size:11px;color:var(--muted)"> / 100</small></div><div class="decision-note">${tempStatus} · ${breadthLabel}<br>红盘 ${(regime.breadth*100).toFixed(0)}%</div></div>
     <div class="decision-cell"><div class="decision-label">Tomorrow Focus</div><ol class="focus-list">${tomorrowFocus.map((x,i)=>`<li><b>${i+1}</b>${esc(x)}</li>`).join('')||'<li>等待有效行情</li>'}</ol><div class="decision-note">观察触发条件，不作为开仓指令。</div></div>
@@ -357,18 +361,27 @@ renderFlowPanel(d.fund_flow);
    ═══════════════════════════════════════════════ */
 async function tryFetch(u){try{return await fetch(u,{cache:'no-store'}).then(r=>r.json())}catch(e){return null}}
 async function fetchLiveFundFlow(){return tryFetch('/api/live/fund-flow')||tryFetch('/api/fund-flow')}
+async function fetchLiveOverview(){const overview=await tryFetch('/api/live/fund-flow?mode=overview');if(overview&&overview.live!==false&&overview.market)return overview;const flow=await fetchLiveFundFlow();return flow&&flow.live!==false?{live:true,fund_flow:flow,degraded:true}:overview}
 let livePollBusy=false;
 async function updateLiveFlow(d){
   if(livePollBusy)return;
   livePollBusy=true;
   $('#status').textContent='正在更新实时资金…';
-  const live=await fetchLiveFundFlow();
+  const live=await fetchLiveOverview();
   if(live&&live.live!==false){
-    d.fund_flow=live;
-    const ts=flowTimestamp(live);
-    $('#status').textContent=`资金实时 ${ts?ts.slice(5,16):'已更新'} · 主体 ${d.meta.market_date}`;
+    if(live.market){
+      d.market=live.market;
+      d.sentiment={...(d.sentiment||{}),...(live.sentiment||{})};
+      if(safe(live.leaders).length)d.leaders=live.leaders;
+      d.meta.market_date=live.meta?.market_date||d.meta.market_date;
+      d.meta.live_updated_at=live.meta?.updated_at;
+    }
+    d.fund_flow=live.fund_flow||live;
+    rememberMarketPalace(d);
+    const ts=flowTimestamp(d.fund_flow);
+    $('#status').textContent=live.market?`全市场实时 ${ts?ts.slice(5,16):'已更新'}`:`仅资金实时 ${ts?ts.slice(5,16):'已更新'} · 基础统计降级`;
     render(d);
-  }else{$('#status').textContent=`实时资金暂不可用 · 主体 ${d.meta.market_date}`}
+  }else{$('#status').textContent=`实时总览暂不可用 · 上次数据 ${d.meta.market_date}`}
   livePollBusy=false;
 }
 async function loadSectorPage(){
@@ -396,6 +409,8 @@ async function load(){
   if(!d||d.empty){$('#status').textContent='无法加载数据';$('#app').innerHTML='<div class="card span12 empty"><h2 style="font-size:15px;margin:0 0 6px">无法加载数据</h2><p>请通过 HTTP 服务器访问此页面，或推送后通过 Netlify 访问。</p></div>';return}
   // First paint must never wait for the serverless live-flow proxy.
   d.snapshot_fund_flow=d.fund_flow;
+  d.snapshot_market=d.market;
+  d.snapshot_sentiment=d.sentiment;
   $('#status').textContent='盘后快照已加载';
   render(d);
   await updateLiveFlow(d);
