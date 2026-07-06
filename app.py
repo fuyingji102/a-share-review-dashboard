@@ -375,6 +375,9 @@ def collect() -> dict[str, Any]:
     today_compact = compact_history(snapshot)
     prior = [row for row in history if row.get("trade_date") != today_compact["trade_date"]]
     combined = (prior + [today_compact])[-30:]
+    # Keep compact daily evidence in the public snapshot so the static Netlify
+    # build can calculate persistence, volume baselines and leadership memory.
+    snapshot["history"] = combined[-20:]
     snapshot["rotation"] = [
         {"date": row.get("trade_date"), "industries": [x.get("name") for x in row.get("industry_top", [])[:3]], "concepts": [x.get("name") for x in row.get("concept_top", [])[:3]]}
         for row in combined
