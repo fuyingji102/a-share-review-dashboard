@@ -2165,7 +2165,7 @@
   {
     "time": "2026-07-06 15:00",
     "market": {
-      "turnover": 3112424376854.8003,
+      "turnover": 3112430002854.8003,
       "turnover_change_pct": null,
       "up_count": 1876,
       "down_count": 3539,
@@ -2184,84 +2184,116 @@
       {
         "code": "BK1216",
         "name": "医药生物",
-        "value": 29.10508544
+        "value": 29.10508544,
+        "change_pct": 0.64,
+        "turnover": 183604081381.0
       },
       {
         "code": "BK0465",
         "name": "化学制药",
-        "value": 20.64772608
+        "value": 20.64772608,
+        "change_pct": 0.96,
+        "turnover": 82054333852.0
       },
       {
         "code": "BK1594",
         "name": "化学制剂",
-        "value": 19.94786304
+        "value": 19.94786304,
+        "change_pct": 1.13,
+        "turnover": 68552978244.0
       },
       {
         "code": "BK1446",
         "name": "其他计算机设备",
-        "value": 17.63182336
+        "value": 17.63182336,
+        "change_pct": -1.3,
+        "turnover": 34631168041.0
       },
       {
         "code": "BK0735",
         "name": "计算机设备",
-        "value": 15.34187776
+        "value": 15.34187776,
+        "change_pct": -1.64,
+        "turnover": 41947720492.0
       },
       {
         "code": "BK1283",
         "name": "银行",
-        "value": 14.74843392
+        "value": 14.74843392,
+        "change_pct": 2.31,
+        "turnover": 28675060405.0
       },
       {
         "code": "BK0475",
         "name": "银行Ⅱ",
-        "value": 14.74843392
+        "value": 14.74843392,
+        "change_pct": 2.31,
+        "turnover": 28675060405.0
       },
       {
         "code": "BK1397",
         "name": "磨具磨料",
-        "value": 13.64008832
+        "value": 13.64008832,
+        "change_pct": 0.18,
+        "turnover": 14681011441.0
       }
     ],
     "sector_out": [
       {
         "code": "BK1201",
         "name": "电子",
-        "value": -331.5269632
+        "value": -331.5269632,
+        "change_pct": -2.03,
+        "turnover": 966428270144.0
       },
       {
         "code": "BK1215",
         "name": "通信",
-        "value": -146.13519616
+        "value": -146.13519616,
+        "change_pct": -2.45,
+        "turnover": 205061138512.0
       },
       {
         "code": "BK0448",
         "name": "通信设备",
-        "value": -138.63622656
+        "value": -138.63622656,
+        "change_pct": -2.32,
+        "turnover": 189276982026.0
       },
       {
         "code": "BK1200",
         "name": "电力设备",
-        "value": -101.54272768
+        "value": -101.54272768,
+        "change_pct": -2.57,
+        "turnover": 236925928587.0
       },
       {
         "code": "BK1036",
         "name": "半导体",
-        "value": -95.2436736
+        "value": -95.2436736,
+        "change_pct": -0.54,
+        "turnover": 516991383422.0
       },
       {
         "code": "BK1591",
         "name": "通信网络设备及器件",
-        "value": -88.94755328
+        "value": -88.94755328,
+        "change_pct": -2.68,
+        "turnover": 120153047145.0
       },
       {
         "code": "BK0459",
         "name": "元件",
-        "value": -86.89903104
+        "value": -86.89903104,
+        "change_pct": -4.08,
+        "turnover": 146495711951.0
       },
       {
         "code": "BK1038",
         "name": "光学光电子",
-        "value": -82.1629312
+        "value": -82.1629312,
+        "change_pct": -3.5,
+        "turnover": 110574427786.0
       }
     ]
   },
@@ -5867,6 +5899,450 @@
         "code": "BK1038",
         "name": "光学光电子",
         "value": -82.1629312
+      }
+    ]
+  },
+  {
+    "time": "2026-07-06 18:00",
+    "market": {
+      "turnover": 3112430002854.8003,
+      "turnover_change_pct": null,
+      "up_count": 1876,
+      "down_count": 3539,
+      "flat_count": 114,
+      "sample_count": 5529,
+      "temperature": 51
+    },
+    "sentiment": {
+      "limit_up_count": 64,
+      "limit_down_count": 53,
+      "max_board": 5,
+      "break_rate": null
+    },
+    "main_net": -872.92765346,
+    "sector_in": [
+      {
+        "code": "BK1216",
+        "name": "医药生物",
+        "value": 29.10508544
+      },
+      {
+        "code": "BK0465",
+        "name": "化学制药",
+        "value": 20.64772608
+      },
+      {
+        "code": "BK1594",
+        "name": "化学制剂",
+        "value": 19.94786304
+      },
+      {
+        "code": "BK1446",
+        "name": "其他计算机设备",
+        "value": 17.63182336
+      },
+      {
+        "code": "BK0735",
+        "name": "计算机设备",
+        "value": 15.34187776
+      },
+      {
+        "code": "BK1283",
+        "name": "银行",
+        "value": 14.74843392
+      },
+      {
+        "code": "BK0475",
+        "name": "银行Ⅱ",
+        "value": 14.74843392
+      },
+      {
+        "code": "BK1397",
+        "name": "磨具磨料",
+        "value": 13.64008832
+      }
+    ],
+    "sector_out": [
+      {
+        "code": "BK1201",
+        "name": "电子",
+        "value": -331.5269632
+      },
+      {
+        "code": "BK1215",
+        "name": "通信",
+        "value": -146.13519616
+      },
+      {
+        "code": "BK0448",
+        "name": "通信设备",
+        "value": -138.63622656
+      },
+      {
+        "code": "BK1200",
+        "name": "电力设备",
+        "value": -101.54272768
+      },
+      {
+        "code": "BK1036",
+        "name": "半导体",
+        "value": -95.2436736
+      },
+      {
+        "code": "BK1591",
+        "name": "通信网络设备及器件",
+        "value": -88.94755328
+      },
+      {
+        "code": "BK0459",
+        "name": "元件",
+        "value": -86.89903104
+      },
+      {
+        "code": "BK1038",
+        "name": "光学光电子",
+        "value": -82.1629312
+      }
+    ]
+  },
+  {
+    "time": "2026-07-06 18:05",
+    "market": {
+      "turnover": 3112430002854.8003,
+      "turnover_change_pct": null,
+      "up_count": 1876,
+      "down_count": 3539,
+      "flat_count": 114,
+      "sample_count": 5529,
+      "temperature": 51
+    },
+    "sentiment": {
+      "limit_up_count": 64,
+      "limit_down_count": 53,
+      "max_board": 5,
+      "break_rate": null
+    },
+    "main_net": -872.92765346,
+    "sector_in": [
+      {
+        "code": "BK1216",
+        "name": "医药生物",
+        "value": 29.10508544
+      },
+      {
+        "code": "BK0465",
+        "name": "化学制药",
+        "value": 20.64772608
+      },
+      {
+        "code": "BK1594",
+        "name": "化学制剂",
+        "value": 19.94786304
+      },
+      {
+        "code": "BK1446",
+        "name": "其他计算机设备",
+        "value": 17.63182336
+      },
+      {
+        "code": "BK0735",
+        "name": "计算机设备",
+        "value": 15.34187776
+      },
+      {
+        "code": "BK1283",
+        "name": "银行",
+        "value": 14.74843392
+      },
+      {
+        "code": "BK0475",
+        "name": "银行Ⅱ",
+        "value": 14.74843392
+      },
+      {
+        "code": "BK1397",
+        "name": "磨具磨料",
+        "value": 13.64008832
+      }
+    ],
+    "sector_out": [
+      {
+        "code": "BK1201",
+        "name": "电子",
+        "value": -331.5269632
+      },
+      {
+        "code": "BK1215",
+        "name": "通信",
+        "value": -146.13519616
+      },
+      {
+        "code": "BK0448",
+        "name": "通信设备",
+        "value": -138.63622656
+      },
+      {
+        "code": "BK1200",
+        "name": "电力设备",
+        "value": -101.54272768
+      },
+      {
+        "code": "BK1036",
+        "name": "半导体",
+        "value": -95.2436736
+      },
+      {
+        "code": "BK1591",
+        "name": "通信网络设备及器件",
+        "value": -88.94755328
+      },
+      {
+        "code": "BK0459",
+        "name": "元件",
+        "value": -86.89903104
+      },
+      {
+        "code": "BK1038",
+        "name": "光学光电子",
+        "value": -82.1629312
+      }
+    ]
+  },
+  {
+    "time": "2026-07-06 18:10",
+    "market": {
+      "turnover": 3112430002854.8003,
+      "turnover_change_pct": null,
+      "up_count": 1876,
+      "down_count": 3539,
+      "flat_count": 114,
+      "sample_count": 5529,
+      "temperature": 51
+    },
+    "sentiment": {
+      "limit_up_count": 64,
+      "limit_down_count": 53,
+      "max_board": 5,
+      "break_rate": null
+    },
+    "main_net": -872.92765346,
+    "sector_in": [
+      {
+        "code": "BK1216",
+        "name": "医药生物",
+        "value": 29.10508544
+      },
+      {
+        "code": "BK0465",
+        "name": "化学制药",
+        "value": 20.64772608
+      },
+      {
+        "code": "BK1594",
+        "name": "化学制剂",
+        "value": 19.94786304
+      },
+      {
+        "code": "BK1446",
+        "name": "其他计算机设备",
+        "value": 17.63182336
+      },
+      {
+        "code": "BK0735",
+        "name": "计算机设备",
+        "value": 15.34187776
+      },
+      {
+        "code": "BK1283",
+        "name": "银行",
+        "value": 14.74843392
+      },
+      {
+        "code": "BK0475",
+        "name": "银行Ⅱ",
+        "value": 14.74843392
+      },
+      {
+        "code": "BK1397",
+        "name": "磨具磨料",
+        "value": 13.64008832
+      }
+    ],
+    "sector_out": [
+      {
+        "code": "BK1201",
+        "name": "电子",
+        "value": -331.5269632
+      },
+      {
+        "code": "BK1215",
+        "name": "通信",
+        "value": -146.13519616
+      },
+      {
+        "code": "BK0448",
+        "name": "通信设备",
+        "value": -138.63622656
+      },
+      {
+        "code": "BK1200",
+        "name": "电力设备",
+        "value": -101.54272768
+      },
+      {
+        "code": "BK1036",
+        "name": "半导体",
+        "value": -95.2436736
+      },
+      {
+        "code": "BK1591",
+        "name": "通信网络设备及器件",
+        "value": -88.94755328
+      },
+      {
+        "code": "BK0459",
+        "name": "元件",
+        "value": -86.89903104
+      },
+      {
+        "code": "BK1038",
+        "name": "光学光电子",
+        "value": -82.1629312
+      }
+    ]
+  },
+  {
+    "time": "2026-07-06 18:15",
+    "market": {
+      "turnover": 3112430002854.8003,
+      "turnover_change_pct": null,
+      "up_count": 1876,
+      "down_count": 3539,
+      "flat_count": 114,
+      "sample_count": 5529,
+      "temperature": 51
+    },
+    "sentiment": {
+      "limit_up_count": 64,
+      "limit_down_count": 53,
+      "max_board": 5,
+      "break_rate": null
+    },
+    "main_net": -872.92765346,
+    "sector_in": [
+      {
+        "code": "BK1216",
+        "name": "医药生物",
+        "value": 29.10508544,
+        "change_pct": 0.64,
+        "turnover": 183604081381.0
+      },
+      {
+        "code": "BK0465",
+        "name": "化学制药",
+        "value": 20.64772608,
+        "change_pct": 0.96,
+        "turnover": 82054333852.0
+      },
+      {
+        "code": "BK1594",
+        "name": "化学制剂",
+        "value": 19.94786304,
+        "change_pct": 1.13,
+        "turnover": 68552978244.0
+      },
+      {
+        "code": "BK1446",
+        "name": "其他计算机设备",
+        "value": 17.63182336,
+        "change_pct": -1.3,
+        "turnover": 34631168041.0
+      },
+      {
+        "code": "BK0735",
+        "name": "计算机设备",
+        "value": 15.34187776,
+        "change_pct": -1.64,
+        "turnover": 41947720492.0
+      },
+      {
+        "code": "BK1283",
+        "name": "银行",
+        "value": 14.74843392,
+        "change_pct": 2.31,
+        "turnover": 28675060405.0
+      },
+      {
+        "code": "BK0475",
+        "name": "银行Ⅱ",
+        "value": 14.74843392,
+        "change_pct": 2.31,
+        "turnover": 28675060405.0
+      },
+      {
+        "code": "BK1397",
+        "name": "磨具磨料",
+        "value": 13.64008832,
+        "change_pct": 0.18,
+        "turnover": 14681011441.0
+      }
+    ],
+    "sector_out": [
+      {
+        "code": "BK1201",
+        "name": "电子",
+        "value": -331.5269632,
+        "change_pct": -2.03,
+        "turnover": 966428270144.0
+      },
+      {
+        "code": "BK1215",
+        "name": "通信",
+        "value": -146.13519616,
+        "change_pct": -2.45,
+        "turnover": 205061138512.0
+      },
+      {
+        "code": "BK0448",
+        "name": "通信设备",
+        "value": -138.63622656,
+        "change_pct": -2.32,
+        "turnover": 189276982026.0
+      },
+      {
+        "code": "BK1200",
+        "name": "电力设备",
+        "value": -101.54272768,
+        "change_pct": -2.57,
+        "turnover": 236925928587.0
+      },
+      {
+        "code": "BK1036",
+        "name": "半导体",
+        "value": -95.2436736,
+        "change_pct": -0.54,
+        "turnover": 516991383422.0
+      },
+      {
+        "code": "BK1591",
+        "name": "通信网络设备及器件",
+        "value": -88.94755328,
+        "change_pct": -2.68,
+        "turnover": 120153047145.0
+      },
+      {
+        "code": "BK0459",
+        "name": "元件",
+        "value": -86.89903104,
+        "change_pct": -4.08,
+        "turnover": 146495711951.0
+      },
+      {
+        "code": "BK1038",
+        "name": "光学光电子",
+        "value": -82.1629312,
+        "change_pct": -3.5,
+        "turnover": 110574427786.0
       }
     ]
   }

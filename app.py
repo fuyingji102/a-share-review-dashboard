@@ -168,13 +168,13 @@ def fetch_flow_rows(secid: str) -> list[dict[str, Any]]:
     return rows
 
 
-def fetch_sector_ranking(descending: bool) -> list[dict[str, Any]]:
+def fetch_sector_ranking(descending: bool, market_filter: str = "m:90+t:2") -> list[dict[str, Any]]:
     payload = eastmoney_get(
         EAST_RANK_URL,
         {
             "fid": "f62", "po": "1" if descending else "0", "pz": "8",
             "pn": "1", "np": "1", "fltt": "2", "invt": "2",
-            "fs": "m:90+t:2", "fields": "f12,f14,f62",
+            "fs": market_filter, "fields": "f12,f14,f3,f6,f62",
         },
     )
     result = []
@@ -182,7 +182,10 @@ def fetch_sector_ranking(descending: bool) -> list[dict[str, Any]]:
         value = number(item.get("f62")) / 1e8
         if (descending and value <= 0) or (not descending and value >= 0):
             continue
-        result.append({"code": item.get("f12"), "name": item.get("f14"), "value": value})
+        result.append({
+            "code": item.get("f12"), "name": item.get("f14"), "value": value,
+            "change_pct": number(item.get("f3")), "turnover": number(item.get("f6")),
+        })
     return result[:8]
 
 
@@ -236,13 +239,16 @@ def fetch_sector_series(codes: list[str]) -> dict[str, Any]:
 
 
 def fetch_eastmoney_fund_flow() -> dict[str, Any]:
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         sh_future = executor.submit(fetch_flow_rows, "1.000001")
         sz_future = executor.submit(fetch_flow_rows, "0.399001")
         in_future = executor.submit(fetch_sector_ranking, True)
         out_future = executor.submit(fetch_sector_ranking, False)
+        concept_in_future = executor.submit(fetch_sector_ranking, True, "m:90+t:3")
+        concept_out_future = executor.submit(fetch_sector_ranking, False, "m:90+t:3")
         market_sources = [sh_future.result(), sz_future.result()]
         top_in, top_out = in_future.result(), out_future.result()
+        concept_in, concept_out = concept_in_future.result(), concept_out_future.result()
 
     market_by_time: dict[str, dict[str, Any]] = {}
     for source in market_sources:
@@ -266,13 +272,16 @@ def fetch_eastmoney_fund_flow() -> dict[str, Any]:
     return {
         "source": "东方财富 push2delay", "market_rows": market_rows,
         "market_latest": latest, "sector_in": top_in, "sector_out": top_out,
+        "concept_in": concept_in, "concept_out": concept_out,
         "sector_series": sector_series,
         "sector_names": {item["code"]: item["name"] for item in sector_items},
     }
 
 
 def persist_market_memory(payload: dict[str, Any]) -> None:
-    timestamp = str((payload.get("meta") or {}).get("updated_at") or datetime.now().astimezone().isoformat(timespec="seconds"))
+    flow = payload.get("fund_flow") or {}
+    market_time = str((flow.get("market_latest") or {}).get("time") or "")
+    timestamp = market_time or str((payload.get("meta") or {}).get("updated_at") or datetime.now().astimezone().isoformat(timespec="seconds"))
     trade_date = timestamp[:10]
     minute = timestamp[11:16]
     if not trade_date or not minute:
@@ -285,7 +294,6 @@ def persist_market_memory(payload: dict[str, Any]) -> None:
         rows = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
     except Exception:
         rows = []
-    flow = payload.get("fund_flow") or {}
     compact = {
         "time": f"{trade_date} {bucket}",
         "market": payload.get("market") or {},
@@ -309,7 +317,11 @@ def load_market_memory(days: int = 30) -> dict[str, Any]:
     if MEMORY_DIR.exists():
         for path in sorted(MEMORY_DIR.glob("20??-??-??.json"))[-max(1, min(days, 30)):]:
             try:
-                rows.extend(json.loads(path.read_text(encoding="utf-8")))
+                stored = json.loads(path.read_text(encoding="utf-8"))
+                rows.extend(
+                    row for row in stored
+                    if "09:15" <= str(row.get("time", ""))[11:16] <= "15:00"
+                )
             except Exception:
                 continue
     return {"days": days, "count": len(rows), "rows": rows}
@@ -390,6 +402,8 @@ def fetch_live_overview(force: bool = False) -> dict[str, Any]:
         "meta": {"market_date": market_date, "updated_at": now_local.isoformat(timespec="seconds"), "errors": errors},
         "market": {"turnover": turnover, "turnover_change_pct": turnover_change_pct, "up_count": up_count, "down_count": down_count, "flat_count": flat_count, "sample_count": len(market_rows), "temperature": temperature},
         "sentiment": {"limit_up_count": limit_total, "limit_down_count": len(limit_down_rows), "max_board": max_board, "break_rate": None},
+        "industry_top": (fund_flow.get("sector_in") or [])[:10],
+        "concept_top": (fund_flow.get("concept_in") or [])[:10],
         "fund_flow": fund_flow,
         "leaders": leaders,
     }
@@ -775,7 +789,7 @@ class Handler(SimpleHTTPRequestHandler):
                 elif mode == "series":
                     payload = fetch_sector_series((query.get("codes") or [""])[0].split(","))
                 elif mode == "overview":
-                    payload = fetch_live_overview()
+                    payload = fetch_live_overview((query.get("force") or ["0"])[0] in {"1", "true", "yes"})
                 else:
                     payload = fetch_eastmoney_fund_flow()
                 payload["live"] = True

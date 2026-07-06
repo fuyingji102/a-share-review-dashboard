@@ -90,17 +90,17 @@ async function fetchFlowRows(secid) {
 }
 
 /** 获取板块排名 */
-async function fetchSectorRanking(descending) {
+async function fetchSectorRanking(descending, fs = "m:90+t:2") {
   const payload = await httpsGet(EAST_RANK_URL, {
     fid: "f62", po: descending ? "1" : "0", pz: "8",
     pn: "1", np: "1", fltt: "2", invt: "2",
-    fs: "m:90+t:2", fields: "f12,f14,f62",
+    fs, fields: "f12,f14,f3,f6,f62",
   });
   const items = (payload.data || {}).diff || [];
   return items
     .map((item) => {
       const value = Number(item.f62 || 0) / 1e8;
-      return { code: item.f12, name: item.f14, value };
+      return { code: item.f12, name: item.f14, value, change_pct: Number(item.f3 || 0), turnover: Number(item.f6 || 0) };
     })
     .filter(
       (r) => (descending && r.value > 0) || (!descending && r.value < 0)
@@ -185,13 +185,14 @@ function combineMarketFlow(sh, sz) {
 }
 
 async function fetchLiveOverview() {
-  const [marketData, limitData, downData, hotData, sh, sz, topIn, topOut] = await Promise.all([
+  const [marketData, limitData, downData, hotData, sh, sz, topIn, topOut, conceptIn, conceptOut] = await Promise.all([
     fuyaoGet("/api/a-share/prices/snapshot", { limit: "10000", offset: "0" }),
     fuyaoGet("/api/a-share/special-data/limit-up-pool", { page: "1", size: "200", sort_field: "continue_day_cnt", sort_dir: "desc" }),
     fuyaoGet("/api/a-share/special-data/anomaly-analysis-list", { tag_codes: "LIMIT_DOWN" }),
     fuyaoGet("/api/a-share/special-data/hot-stock-list", { period: "day" }),
     fetchFlowRows("1.000001"), fetchFlowRows("0.399001"),
     fetchSectorRanking(true), fetchSectorRanking(false),
+    fetchSectorRanking(true, "m:90+t:3"), fetchSectorRanking(false, "m:90+t:3"),
   ]);
   const stocks = marketData.item || [];
   const turnover = stocks.reduce((sum, row) => sum + Number(row.turnover || 0), 0);
@@ -218,7 +219,9 @@ async function fetchLiveOverview() {
     meta: { market_date: marketDate, updated_at: new Date().toISOString(), errors: [] },
     market: { turnover, turnover_change_pct: null, up_count: upCount, down_count: downCount, flat_count: flatCount, sample_count: stocks.length, temperature },
     sentiment: { limit_up_count: limitTotal, limit_down_count: downRows.length, max_board: maxBoard, break_rate: null },
-    fund_flow: { source: "东方财富 push2delay", market_rows: marketRows, market_latest: latest, sector_in: topIn, sector_out: topOut, sector_series: {}, sector_names: Object.fromEntries([...topIn, ...topOut].map((x) => [x.code, x.name])) },
+    industry_top: topIn,
+    concept_top: conceptIn,
+    fund_flow: { source: "东方财富 push2delay", market_rows: marketRows, market_latest: latest, sector_in: topIn, sector_out: topOut, concept_in: conceptIn, concept_out: conceptOut, sector_series: {}, sector_names: Object.fromEntries([...topIn, ...topOut].map((x) => [x.code, x.name])) },
     leaders,
   };
 }
@@ -238,7 +241,8 @@ exports.handler = async (event) => {
 
   try {
     if (mode === "overview") {
-      const overview = await cached("overview", fetchLiveOverview);
+      const overview = ["1", "true", "yes"].includes(String(event.queryStringParameters.force || "").toLowerCase())
+        ? await fetchLiveOverview() : await cached("overview", fetchLiveOverview);
       return { statusCode: 200, headers, body: JSON.stringify(overview) };
     } else if (mode === "catalog") {
       const items = await cached("catalog", fetchSectorCatalog);

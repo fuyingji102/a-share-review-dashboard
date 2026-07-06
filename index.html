@@ -20,7 +20,7 @@
 body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 .workspace-shell{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:100vh}.workspace-sidebar{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);background:#090d12;padding:18px 12px;display:flex;flex-direction:column;z-index:20}.ws-brand{font:600 13px var(--font-title);padding:4px 8px 16px}.ws-brand small{display:block;color:var(--muted);font:400 8px var(--font-mono);margin-top:4px}.ws-nav{display:flex;flex-direction:column;gap:3px}.ws-nav a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;color:#8190a5;text-decoration:none;font-size:10px}.ws-nav a:hover,.ws-nav a.active{background:#172131;color:#dce8f8}.ws-nav i{width:18px;text-align:center;font-style:normal;color:#5f7797}.ws-divider{height:1px;background:var(--line);margin:14px 6px}.ws-context{padding:8px}.ws-context .type{font:500 8px var(--font-mono);color:var(--blue);letter-spacing:.12em}.ws-context b{display:block;font:600 14px var(--font-title);margin:7px 0 3px}.ws-context span{font-size:9px;color:var(--muted);line-height:1.5}.ws-memory{margin-top:auto;padding:9px;border:1px solid var(--line);border-radius:8px;background:#101720;font-size:9px;color:var(--muted)}.ws-memory b{color:var(--text);font:500 10px var(--font-mono)}.workspace-main{min-width:0}.wrap{max-width:1500px;margin:auto;padding:20px 22px 30px}
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:18px;font-weight:700;box-shadow:0 6px 20px rgba(79,140,255,.25)}.title h1{font-family:var(--font-title);font-size:18px;margin:0;font-weight:600;letter-spacing:.02em}.title p{margin:3px 0 0;color:var(--muted);font-size:11px}.status{font-size:11px;color:var(--muted);text-align:right;line-height:1.4}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:18px;font-weight:700;box-shadow:0 6px 20px rgba(79,140,255,.25)}.title h1{font-family:var(--font-title);font-size:18px;margin:0;font-weight:600;letter-spacing:.02em}.title p{margin:3px 0 0;color:var(--muted);font-size:11px}.header-live{display:flex;align-items:center;gap:8px}.status{font-size:11px;color:var(--muted);text-align:right;line-height:1.4}.refresh-live{border:1px solid #315077;background:#15283f;color:#b9d5f4;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:10px;white-space:nowrap}.refresh-live:hover{border-color:var(--blue);color:#fff}.refresh-live:disabled{opacity:.55;cursor:wait}.refresh-live.spinning i{display:inline-block;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
 .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);padding:15px;min-width:0;box-shadow:var(--shadow)}
 .span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}
@@ -66,6 +66,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;ma
 
 /* ---- Entity story / evidence / action ---- */
 .entity-story{border-color:#334866;background:linear-gradient(145deg,#182233,#111821)}.story-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}.story-header h2{font:600 18px var(--font-title);margin:0}.story-header p{font-size:10px;color:var(--muted);margin:4px 0 0}.story-flow{display:flex;align-items:stretch;gap:7px;overflow-x:auto;padding:3px 0}.story-step{min-width:145px;flex:1;border:1px solid var(--line);border-radius:9px;padding:10px;background:#0d141e}.story-step .label{font-size:8px;color:var(--muted);letter-spacing:.1em}.story-step b{display:block;font:600 13px var(--font-title);margin:7px 0 4px}.story-step span{font-size:9px;color:#8fa2ba;line-height:1.45}.story-arrow{align-self:center;color:#4f6380;font-size:16px}.intelligence-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;margin-top:11px}.intel-panel{border:1px solid var(--line);border-radius:9px;padding:11px;background:#0d141e}.intel-panel h3{font:600 11px var(--font-title);margin:0 0 8px}.evidence-row{display:grid;grid-template-columns:16px 1fr auto;gap:6px;padding:6px 0;border-bottom:1px solid #192331;font-size:9px}.evidence-row:last-child{border-bottom:0}.evidence-row i{font-style:normal;color:var(--green)}.evidence-row em{font-style:normal;font:500 8px var(--font-mono);color:var(--muted)}.dna-grid{display:grid;grid-template-columns:70px 1fr;gap:7px;font-size:9px}.dna-grid span{color:var(--muted)}.action-row{display:grid;grid-template-columns:1fr auto;gap:5px;padding:7px 0;border-bottom:1px solid #192331;color:var(--text);text-decoration:none}.action-row:last-child{border-bottom:0}.action-row b{font-size:10px}.action-row small{grid-column:1/-1;color:var(--muted);font-size:8px}.action-row .stars{color:var(--gold);font-size:10px}.confidence{padding:3px 7px;border-radius:99px;background:#17263b;color:#8eb4ff;font:500 8px var(--font-mono)}
+.rotation-radar{border-color:#54472a;background:linear-gradient(145deg,#1d1b16,#111821)}.rotation-status{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}.rotation-side{border:1px solid var(--line);background:#0d141e;border-radius:9px;padding:11px}.rotation-side .eyebrow{font-size:8px;letter-spacing:.12em;color:var(--muted)}.rotation-side strong{display:block;font:600 17px var(--font-title);margin:7px 0}.rotation-side p{font-size:9px;color:var(--muted);margin:0;line-height:1.5}.rotation-center{min-width:140px;display:grid;place-items:center;text-align:center}.rotation-center b{font:700 20px var(--font-title);color:var(--gold)}.rotation-center span{font-size:9px;color:var(--muted)}.rotation-evidence{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.rotation-memory{display:flex;gap:6px;overflow-x:auto;margin-top:10px}.rotation-memory span{min-width:120px;border-left:2px solid #35455c;padding:4px 8px;font-size:8px;color:var(--muted)}.rotation-memory b{display:block;color:var(--text);font-size:9px;margin-bottom:3px}
 
 /* ---- Flow Path ---- */
 .flow-path{display:flex;align-items:center;gap:2px;overflow-x:auto;padding:10px 0 6px}
@@ -122,14 +123,14 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;ma
 
 /* ---- Responsive ---- */
 @media(max-width:1050px){.workspace-shell{grid-template-columns:62px minmax(0,1fr)}.ws-brand{font-size:0}.ws-brand:before{content:'A';font:700 16px var(--font-title)}.ws-brand small,.ws-nav span,.ws-context,.ws-memory{display:none}.ws-nav a{justify-content:center}.span3,.span4{grid-column:span 6}.span5,.span7,.span8{grid-column:span 12}.stock-grid,.conclusion-grid{grid-template-columns:repeat(2,1fr)}.decision-grid{grid-template-columns:repeat(2,1fr)}.decision-cell{border-bottom:1px solid var(--line)}.decision-cell:nth-child(even){border-right:0}.decision-cell:last-child{grid-column:span 2}.sankey-wrap{grid-template-columns:1fr}.coverage-grid{grid-template-columns:repeat(2,1fr)}.sector-hero{grid-template-columns:repeat(2,1fr)}.sector-hero>div:first-child{grid-column:span 2}.role-grid{grid-template-columns:repeat(2,1fr)}.stock-quote{grid-template-columns:repeat(3,1fr)}.intelligence-grid{grid-template-columns:1fr 1fr}.intel-panel:first-child{grid-column:span 2}}
-@media(max-width:650px){.workspace-shell{display:block}.workspace-sidebar{position:sticky;height:auto;top:0;flex-direction:row;padding:6px 8px;overflow-x:auto}.ws-brand,.ws-divider,.ws-context,.ws-memory{display:none}.ws-nav{flex-direction:row}.ws-nav a{padding:7px 10px}.ws-nav span{display:inline}.wrap{padding:12px}.span3,.span4,.span5,.span6,.span7,.span8{grid-column:span 12}.conclusion-grid,.stock-grid{grid-template-columns:1fr 1fr}.metric{font-size:24px}.heatmap{grid-template-columns:repeat(3,1fr)}.decision-grid,.six-radar{grid-template-columns:1fr}.decision-cell,.decision-cell:nth-child(even){border-right:0}.decision-cell:last-child{grid-column:auto}.radar-card.wide{grid-column:auto;grid-row:auto}.live-bars,.role-grid,.intelligence-grid{grid-template-columns:1fr}.intel-panel:first-child{grid-column:auto}.story-step{min-width:130px}.sankey{height:300px}.playbook,.coverage-grid,.sector-rank-grid{grid-template-columns:1fr}.sector-hero{grid-template-columns:1fr}.sector-hero>div:first-child{grid-column:auto}.stock-quote{grid-template-columns:repeat(2,1fr)}.flowchart{height:300px}.sector-rank-row{grid-template-columns:18px 92px minmax(75px,1fr) 58px}}
+@media(max-width:650px){.workspace-shell{display:block}.workspace-sidebar{position:sticky;height:auto;top:0;flex-direction:row;padding:6px 8px;overflow-x:auto}.ws-brand,.ws-divider,.ws-context,.ws-memory{display:none}.ws-nav{flex-direction:row}.ws-nav a{padding:7px 10px}.ws-nav span{display:inline}.wrap{padding:12px}.span3,.span4,.span5,.span6,.span7,.span8{grid-column:span 12}.conclusion-grid,.stock-grid{grid-template-columns:1fr 1fr}.metric{font-size:24px}.heatmap{grid-template-columns:repeat(3,1fr)}.decision-grid,.six-radar,.rotation-status,.rotation-evidence{grid-template-columns:1fr}.decision-cell,.decision-cell:nth-child(even){border-right:0}.decision-cell:last-child{grid-column:auto}.radar-card.wide{grid-column:auto;grid-row:auto}.live-bars,.role-grid,.intelligence-grid{grid-template-columns:1fr}.intel-panel:first-child{grid-column:auto}.story-step{min-width:130px}.sankey{height:300px}.playbook,.coverage-grid,.sector-rank-grid{grid-template-columns:1fr}.sector-hero{grid-template-columns:1fr}.sector-hero>div:first-child{grid-column:auto}.stock-quote{grid-template-columns:repeat(2,1fr)}.flowchart{height:300px}.sector-rank-row{grid-template-columns:18px 92px minmax(75px,1fr) 58px}.header-live{flex-direction:column;align-items:flex-end;gap:4px}.rotation-center{min-height:70px}}
 .empty{color:var(--muted);padding:24px;text-align:center;font-size:12px}.foot{color:var(--muted);font-size:10px;text-align:center;margin:20px 0 2px}
 </style>
 </head>
 <body><div class="workspace-shell"><aside class="workspace-sidebar"><div class="ws-brand">A-Share Intelligence<small>TRADING WORKSPACE</small></div><nav class="ws-nav"><a href="/" data-nav="market"><i>◉</i><span>Market</span></a><a href="/#capital" data-nav="capital"><i>↔</i><span>Capital</span></a><a href="/#sectors" data-nav="sector"><i>▦</i><span>Sector</span></a><a href="/#leaders" data-nav="watchlist"><i>★</i><span>Watchlist</span></a><a href="/#memory" data-nav="memory"><i>◫</i><span>Memory</span></a></nav><div class="ws-divider"></div><div class="ws-context"><div class="type" id="wsEntityType">MARKET</div><b id="wsEntityName">A股市场</b><span id="wsEntityState">正在连接实时数据</span></div><div class="ws-memory">Memory Palace<br><b id="wsMemoryState">0 frames · 0 days</b></div></aside><div class="workspace-main"><div class="wrap">
 <header>
   <div class="brand"><div class="logo">A</div><div class="title"><h1>A股实时资金与主线雷达</h1><p id="meta">Real-time Capital Rotation & Sector Leadership Terminal</p></div></div>
-  <div class="status" id="status">就绪</div>
+  <div class="header-live"><div class="status" id="status">就绪</div><button class="refresh-live" id="refreshLive" title="立即跳过缓存获取实时数据"><i>↻</i> 手动更新</button></div>
 </header>
 
 <!-- 折叠口径说明 -->
@@ -137,7 +138,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;ma
   <div class="notice-toggle" onclick="document.getElementById('noticeBody').classList.toggle('open');this.classList.toggle('open')">
     <span>ⓘ 数据口径说明</span><span class="icon">▼</span>
   </div>
-  <div class="notice-body" id="noticeBody">行业/概念榜当前是"指数涨幅 + 成交额"的强度代理，并非资金净流入。龙虎榜机构与游资净买额为真实接口字段。本工具用于盘后研究，不构成任何投资建议。</div>
+  <div class="notice-body" id="noticeBody">首页行业/概念与资金方向按30秒实时接口更新；高低切必须经过交易日记忆的两日持续性确认。龙虎榜机构数据采用最新已披露口径，不伪装成盘中实时。本工具仅供研究，不构成投资建议。</div>
 </div>
 
 <main class="grid" id="app"><div class="card span12 empty">正在加载数据...</div></main>
@@ -180,9 +181,15 @@ function volumeProfile(row,history){const vals=safe(history).map(d=>safe(d.indus
 function sectorHref(row){return`/sector/${encodeURIComponent(row.code)}?name=${encodeURIComponent(row.name||row.code)}`}
 function stockHref(row,sector){return`/stock/${encodeURIComponent(row.code)}?sector=${encodeURIComponent(sector.code)}&sectorName=${encodeURIComponent(sector.name)}&name=${encodeURIComponent(row.name||row.code)}`}
 const MARKET_MEMORY_KEY='a-share-market-palace:v1';
+let serverMarketMemory=[];
 function readMarketPalace(){try{return JSON.parse(localStorage.getItem(MARKET_MEMORY_KEY)||'[]')}catch{return[]}}
-function rememberMarketPalace(d){try{const ts=flowTimestamp(d.fund_flow)||d.meta?.live_updated_at||new Date().toISOString(),date=String(ts).slice(0,10),hm=String(ts).slice(11,16);if(!date||!hm)return;const [h,m]=hm.split(':').map(Number),bucket=`${date} ${String(h).padStart(2,'0')}:${String(Math.floor(m/5)*5).padStart(2,'0')}`;const entry={time:bucket,market:d.market,sentiment:d.sentiment,main:Number(d.fund_flow?.market_latest?.main||0),sector_in:safe(d.fund_flow?.sector_in).slice(0,8),sector_out:safe(d.fund_flow?.sector_out).slice(0,8)};const cutoff=Date.now()-30*864e5,rows=readMarketPalace().filter(x=>x.time!==bucket&&new Date(x.time.replace(' ','T')).getTime()>=cutoff);rows.push(entry);localStorage.setItem(MARKET_MEMORY_KEY,JSON.stringify(rows.slice(-2400)))}catch{}}
-function marketPalaceStats(){const rows=readMarketPalace(),days=new Set(rows.map(x=>String(x.time).slice(0,10))).size;return{count:rows.length,days}}
+function mergedMarketMemory(){const map=new Map([...safe(serverMarketMemory),...readMarketPalace()].map(x=>[x.time,x]));return[...map.values()].sort((a,b)=>String(a.time).localeCompare(String(b.time)))}
+function rememberMarketPalace(d){try{const ts=flowTimestamp(d.fund_flow)||d.meta?.live_updated_at||new Date().toISOString(),date=String(ts).slice(0,10),hm=String(ts).slice(11,16);if(!date||!hm)return;const [h,m]=hm.split(':').map(Number),bucket=`${date} ${String(h).padStart(2,'0')}:${String(Math.floor(m/5)*5).padStart(2,'0')}`;const signal=d.high_low_rotation||{};const entry={time:bucket,market:d.market,sentiment:d.sentiment,main:Number(d.fund_flow?.market_latest?.main||0),sector_in:safe(d.fund_flow?.sector_in).slice(0,8),sector_out:safe(d.fund_flow?.sector_out).slice(0,8),rotation:{status:signal.status,from:signal.from?.name,to:signal.to?.name,confidence:signal.confidence}};const cutoff=Date.now()-30*864e5,rows=readMarketPalace().filter(x=>x.time!==bucket&&new Date(x.time.replace(' ','T')).getTime()>=cutoff);rows.push(entry);localStorage.setItem(MARKET_MEMORY_KEY,JSON.stringify(rows.slice(-2400)))}catch{}}
+function marketPalaceStats(){const rows=mergedMarketMemory(),days=new Set(rows.map(x=>String(x.time).slice(0,10))).size;return{count:rows.length,days}}
+function dailyMemoryRows(){const grouped=new Map;mergedMarketMemory().forEach(row=>{const day=String(row.time).slice(0,10);if(!grouped.has(day))grouped.set(day,[]);grouped.get(day).push(row)});return[...grouped.values()].map(rows=>{const marketRows=rows.filter(x=>{const hm=String(x.time).slice(11,16);return hm>='09:15'&&hm<='15:00'});return(marketRows.length?marketRows:rows).slice(-1)[0]}).sort((a,b)=>String(a.time).localeCompare(String(b.time)))}
+function consecutiveSectorDays(name,field){if(!name)return 0;const days=dailyMemoryRows();let count=0;for(let i=days.length-1;i>=0;i--){if(safe(days[i][field]).some(x=>x.name===name))count++;else if(count)break}return count}
+function computeHighLowRotation(d){const f=d.fund_flow||{},from=safe(f.sector_out)[0]||{},to=safe(f.sector_in)[0]||{},memoryDays=new Set(mergedMarketMemory().map(x=>String(x.time).slice(0,10))).size,fromDays=consecutiveSectorDays(from.name,'sector_out'),toDays=consecutiveSectorDays(to.name,'sector_in'),history=safe(d.rotation).slice(-10),highHits=history.filter(x=>safe(x.industries).includes(from.name)||safe(x.concepts).includes(from.name)).length,lowHits=history.filter(x=>safe(x.industries).includes(to.name)||safe(x.concepts).includes(to.name)).length,highWasLeader=highHits>0,org=safe(d.org_top),institution=org.find(x=>safe(x.concepts).some(c=>String(c).includes(to.name)||String(to.name).includes(c))),marketReady=memoryDays>=2;let status='无信号',key='none';if(from.name&&to.name){status=highWasLeader?'首日异动':'轮动候选';key='watch'}if(marketReady&&highWasLeader&&fromDays>=2&&toDays>=2){status='两日确认';key='confirmed'}if(marketReady&&highWasLeader&&fromDays>=2&&toDays>=3){status='轮动加速';key='accelerating'}const confidence=Math.min(95,15+(from.name?10:0)+(to.name?10:0)+(highWasLeader?20:0)+(fromDays>=2?15:0)+(toDays>=2?20:0)+(institution?10:0));const timeline=mergedMarketMemory().filter(x=>x.rotation?.status).slice(-8);return{status,key,from,to,fromDays,toDays,memoryDays,institution,confidence,timeline,marketReady,highWasLeader,highHits,lowHits,updatedAt:flowTimestamp(f)}}
+function highLowRadarHtml(signal){const from=signal.from||{},to=signal.to||{},memoryText=signal.marketReady?`${signal.memoryDays}个交易日记忆参与判断`:`仅${signal.memoryDays}个交易日，暂不确认两日切换`;return`<section class="card span12 rotation-radar" id="rotation-radar"><div class="story-header"><div><h2>High–Low Rotation Radar · 高低切</h2><p>30秒实时资金 + 交易日记忆；首日脉冲只提示，不确认</p></div><span class="confidence">${esc(signal.updatedAt||'等待实时')} · ${signal.confidence}%</span></div><div class="rotation-status"><div class="rotation-side"><div class="eyebrow">HIGH CANDIDATE · 资金离开</div><strong class="down">${esc(from.name||'待确认')}</strong><p>实时净流出 ${Math.abs(Number(from.value||0)).toFixed(1)}亿<br>连续进入流出榜 ${signal.fromDays||0} 个交易日</p></div><div class="rotation-center"><div><b>${esc(signal.status)}</b><br><span>${memoryText}</span></div></div><div class="rotation-side"><div class="eyebrow">LOW CANDIDATE · 资金进入</div><strong class="up">${esc(to.name||'待确认')}</strong><p>实时净流入 ${Number(to.value||0).toFixed(1)}亿<br>连续进入流入榜 ${signal.toDays||0} 个交易日</p></div></div><div class="rotation-evidence"><div class="intel-panel"><h3>确认条件</h3>${evidenceRows([{ok:signal.highWasLeader,text:`流出方向近10日曾进入主线 ${signal.highHits} 次`,source:'HISTORY'},{ok:signal.fromDays>=2,text:`高位候选连续走弱 ${signal.fromDays} 天`,source:'MEMORY'},{ok:signal.toDays>=2,text:`低位候选连续增强 ${signal.toDays} 天`,source:'MEMORY'},{ok:Boolean(signal.institution),text:signal.institution?`机构席位关联：${signal.institution.name}`:'机构关联等待最新披露',source:'LHB'},{ok:false,text:'百日新高/超跌宽度尚待成分股历史接口',source:'PENDING'}])}</div><div class="intel-panel"><h3>交易解释</h3><div class="memory-item">${signal.key==='confirmed'||signal.key==='accelerating'?`资金切换已满足两日持续性；继续观察 ${esc(to.name)} 的机构中军与内部宽度。`:`当前只视作候选或异动，不把单日资金排名直接定义为高低切。`}</div><div class="memory-item" style="margin-top:6px">只有“历史高位身份 + 连续走弱 + 低位连续增强”同时成立才确认。</div></div></div><div class="rotation-memory">${signal.timeline.length?signal.timeline.map(x=>`<span><b>${esc(String(x.time).slice(5,16))} · ${esc(x.rotation.status)}</b>${esc(x.rotation.from||'—')} → ${esc(x.rotation.to||'—')} · ${Number(x.rotation.confidence||0)}%</span>`).join(''):'<span><b>Memory 开始记录</b>后续每5分钟保存一次轮动状态</span>'}</div></section>`}
 function strengthWord(value,max){const r=Math.abs(Number(value||0))/Math.max(1,max);return r>.68?'强':r>.36?'中':'弱'}
 function liveBarsHtml(rows,type){const list=safe(rows).slice(0,6),max=Math.max(...list.map(x=>Math.abs(Number(x.value||0))),1);if(!list.length)return'<div class="empty">等待实时数据</div>';return list.map(r=>`<a class="sector-live-row" href="${sectorHref(r)}" target="_blank" rel="noopener"><b>${esc(r.name)}</b><span class="sector-live-track"><i class="sector-live-fill ${type==='out'?'out':''}" style="display:block;width:${Math.max(4,Math.abs(Number(r.value||0))/max*100)}%"></i></span><em class="${type==='out'?'down':'up'}">${type==='out'?'-':'+'}${Math.abs(Number(r.value||0)).toFixed(1)}亿</em></a>`).join('')}
 function marketSession(ts){const hm=String(ts||'').slice(11,16);if(hm>='09:15'&&hm<='09:25')return'集合竞价';if(hm>='09:30'&&hm<'10:00')return'开盘定向';if(hm>='10:00'&&hm<'11:30')return'早盘博弈';if(hm>='13:00'&&hm<'14:30')return'午后交易';if(hm>='14:30'&&hm<='15:00')return'尾盘定价';return'最近快照'}
@@ -286,6 +293,7 @@ const mainTrend=topSectors[0]||{};
 const mainTrendStars=starText(mainTrend.score);
 const volProfile=volumeProfile(mainTrend,d.history);
 const tomorrowFocus=[mainTrend.name,topSectors[1]?.name,leaderRows[0]?.name].filter(Boolean).slice(0,3);
+const highLowSignal=computeHighLowRotation(d);d.high_low_rotation=highLowSignal;
 
 // ─── Build HTML ───
 $('#meta').textContent=d.meta.live_updated_at?`全市场实时 ${d.meta.market_date} · ${fmt(m.turnover)} · 温度${m.temperature} · ${m.sample_count||0}只 · 更新 ${liveFlowTime?liveFlowTime.slice(5,16):String(d.meta.live_updated_at).slice(5,16)}`:`基础统计（上次采集 ${d.meta.market_date}）· ${fmt(m.turnover)} · 温度${m.temperature}${liveFlowTime?' · 资金 '+liveFlowTime.slice(5,16):''}`;
@@ -294,6 +302,7 @@ setWorkspaceContext('MARKET','A股市场',`${regime.name} · 温度 ${m.temperat
 let html=`
 ${realtimeOverviewHtml(d,m,s,industryStrength)}
 ${marketStoryHtml(d,regime,leaderRows)}
+${highLowRadarHtml(highLowSignal)}
 <!-- ═══ 第一屏：今日结论 ═══ -->
 <section class="card span12 executive">
   <div class="executive-top"><h2>Today · 交易决策摘要</h2><span class="asof">AS OF ${esc(d.meta.market_date)} CLOSE</span></div>
@@ -380,28 +389,33 @@ renderFlowPanel(d.fund_flow);
    ═══════════════════════════════════════════════ */
 async function tryFetch(u){try{return await fetch(u,{cache:'no-store'}).then(r=>r.json())}catch(e){return null}}
 async function fetchLiveFundFlow(){return tryFetch('/api/live/fund-flow')||tryFetch('/api/fund-flow')}
-async function fetchLiveOverview(){const overview=await tryFetch('/api/live/fund-flow?mode=overview');if(overview&&overview.live!==false&&overview.market)return overview;const flow=await fetchLiveFundFlow();return flow&&flow.live!==false?{live:true,fund_flow:flow,degraded:true}:overview}
+async function fetchLiveOverview(force=false){const overview=await tryFetch(`/api/live/fund-flow?mode=overview${force?'&force=1':''}`);if(overview&&overview.live!==false&&overview.market)return overview;const flow=await fetchLiveFundFlow();return flow&&flow.live!==false?{live:true,fund_flow:flow,degraded:true}:overview}
 let livePollBusy=false;
-async function updateLiveFlow(d){
+async function updateLiveFlow(d,force=false){
   if(livePollBusy)return;
   livePollBusy=true;
+  const refresh=$('#refreshLive');if(refresh){refresh.disabled=true;refresh.classList.add('spinning')}
   $('#status').textContent='正在更新实时资金…';
-  const live=await fetchLiveOverview();
+  const live=await fetchLiveOverview(force);
   if(live&&live.live!==false){
     if(live.market){
       d.market=live.market;
       d.sentiment={...(d.sentiment||{}),...(live.sentiment||{})};
       if(safe(live.leaders).length)d.leaders=live.leaders;
+      if(safe(live.industry_top).length)d.industry_top=live.industry_top;
+      if(safe(live.concept_top).length)d.concept_top=live.concept_top;
       d.meta.market_date=live.meta?.market_date||d.meta.market_date;
       d.meta.live_updated_at=live.meta?.updated_at;
     }
     d.fund_flow=live.fund_flow||live;
+    d.high_low_rotation=computeHighLowRotation(d);
     rememberMarketPalace(d);
     const ts=flowTimestamp(d.fund_flow);
     $('#status').textContent=live.market?`全市场实时 ${ts?ts.slice(5,16):'已更新'}`:`仅资金实时 ${ts?ts.slice(5,16):'已更新'} · 基础统计降级`;
     render(d);
   }else{$('#status').textContent=`实时总览暂不可用 · 上次数据 ${d.meta.market_date}`}
   livePollBusy=false;
+  if(refresh){refresh.disabled=false;refresh.classList.remove('spinning')}
 }
 async function loadSectorPage(){
   const code=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'').toUpperCase();
@@ -424,14 +438,17 @@ async function loadStockPage(){
   renderStockTerminal(stock,payload);
 }
 async function load(){
+  const memoryPromise=tryFetch('/api/memory?days=30');
   let d=window.DASHBOARD_DATA||await tryFetch('/api/data')||await tryFetch('/data/dashboard-data.json');
   if(!d||d.empty){$('#status').textContent='无法加载数据';$('#app').innerHTML='<div class="card span12 empty"><h2 style="font-size:15px;margin:0 0 6px">无法加载数据</h2><p>请通过 HTTP 服务器访问此页面，或推送后通过 Netlify 访问。</p></div>';return}
   // First paint must never wait for the serverless live-flow proxy.
   d.snapshot_fund_flow=d.fund_flow;
   d.snapshot_market=d.market;
   d.snapshot_sentiment=d.sentiment;
+  const serverMemory=await memoryPromise;serverMarketMemory=safe(serverMemory?.rows);
   $('#status').textContent='盘后快照已加载';
   render(d);
+  const refresh=$('#refreshLive');if(refresh)refresh.onclick=()=>updateLiveFlow(d,true);
   await updateLiveFlow(d);
   setInterval(()=>updateLiveFlow(d),30000);
 }
