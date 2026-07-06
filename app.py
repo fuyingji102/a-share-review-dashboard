@@ -10,6 +10,7 @@ from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import requests
 
@@ -203,6 +204,41 @@ def fetch_eastmoney_fund_flow() -> dict[str, Any]:
         "market_latest": latest, "sector_in": top_in, "sector_out": top_out,
         "sector_series": sector_series,
         "sector_names": {item["code"]: item["name"] for item in sector_items},
+    }
+
+
+def fetch_eastmoney_sector_detail(code: str, name: str = "") -> dict[str, Any]:
+    if not (code.startswith("BK") and len(code) == 6 and code[2:].isdigit()):
+        raise ValueError("invalid sector code")
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        flow_future = executor.submit(fetch_flow_rows, f"90.{code}")
+        stock_future = executor.submit(
+            eastmoney_get,
+            EAST_RANK_URL,
+            {
+                "pn": "1", "pz": "100", "po": "1", "np": "1",
+                "fltt": "2", "invt": "2", "fid": "f62", "fs": f"b:{code}",
+                "fields": "f12,f14,f2,f3,f5,f6,f8,f10,f15,f16,f17,f18,f20,f21,f62",
+            },
+        )
+        flow_rows = flow_future.result()
+        payload = stock_future.result()
+    stocks = []
+    for item in ((payload.get("data") or {}).get("diff") or []):
+        stocks.append({
+            "code": item.get("f12"), "name": item.get("f14"),
+            "price": number(item.get("f2")), "change_pct": number(item.get("f3")),
+            "volume": number(item.get("f5")), "turnover": number(item.get("f6")),
+            "turnover_rate": number(item.get("f8")), "volume_ratio": number(item.get("f10")),
+            "high": number(item.get("f15")), "low": number(item.get("f16")),
+            "open": number(item.get("f17")), "prev_close": number(item.get("f18")),
+            "market_cap": number(item.get("f20")), "float_cap": number(item.get("f21")),
+            "main_net": number(item.get("f62")),
+        })
+    return {
+        "code": code, "name": name or code, "stocks": stocks,
+        "flow": [{"time": row["time"], "value": row["main"]} for row in flow_rows],
+        "updated_at": flow_rows[-1]["time"] if flow_rows else "", "live": True,
     }
 
 
@@ -423,22 +459,33 @@ def refresh_background() -> None:
 
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
-        if self.path == "/api/data":
+        parsed = urlparse(self.path)
+        query = parse_qs(parsed.query)
+        if parsed.path == "/api/data":
             self.send_json(json.loads(CURRENT_FILE.read_text(encoding="utf-8")) if CURRENT_FILE.exists() else {"empty": True})
             return
-        if self.path in {"/api/live/fund-flow", "/api/fund-flow"}:
+        if parsed.path in {"/api/live/fund-flow", "/api/fund-flow"}:
             try:
-                payload = fetch_eastmoney_fund_flow()
+                mode = (query.get("mode") or ["market"])[0]
+                if mode == "sector":
+                    payload = fetch_eastmoney_sector_detail(
+                        (query.get("code") or [""])[0].upper(),
+                        (query.get("name") or [""])[0],
+                    )
+                else:
+                    payload = fetch_eastmoney_fund_flow()
                 payload["live"] = True
                 self.send_json(payload)
             except Exception as exc:
                 self.send_json({"live": False, "error": str(exc)})
             return
-        if self.path == "/api/status":
+        if parsed.path == "/api/status":
             with STATE_LOCK:
                 self.send_json(dict(STATE))
             return
-        if self.path == "/":
+        if parsed.path == "/":
+            self.path = "/index.html"
+        elif parsed.path.startswith("/sector/") or parsed.path.startswith("/stock/"):
             self.path = "/index.html"
         super().do_GET()
 

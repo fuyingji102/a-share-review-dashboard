@@ -94,6 +94,31 @@ async function fetchSectorRanking(descending) {
     .slice(0, 8);
 }
 
+async function fetchSectorConstituents(code) {
+  const payload = await httpsGet(EAST_RANK_URL, {
+    pn: "1", pz: "100", po: "1", np: "1", fltt: "2", invt: "2",
+    fid: "f62", fs: `b:${code}`,
+    fields: "f12,f14,f2,f3,f5,f6,f8,f10,f15,f16,f17,f18,f20,f21,f62",
+  });
+  return ((payload.data || {}).diff || []).map((item) => ({
+    code: item.f12,
+    name: item.f14,
+    price: Number(item.f2 || 0),
+    change_pct: Number(item.f3 || 0),
+    volume: Number(item.f5 || 0),
+    turnover: Number(item.f6 || 0),
+    turnover_rate: Number(item.f8 || 0),
+    volume_ratio: Number(item.f10 || 0),
+    high: Number(item.f15 || 0),
+    low: Number(item.f16 || 0),
+    open: Number(item.f17 || 0),
+    prev_close: Number(item.f18 || 0),
+    market_cap: Number(item.f20 || 0),
+    float_cap: Number(item.f21 || 0),
+    main_net: Number(item.f62 || 0),
+  }));
+}
+
 exports.handler = async (event) => {
   const mode = event.queryStringParameters.mode || "market";
 
@@ -165,6 +190,27 @@ exports.handler = async (event) => {
           sector_out: topOut,
           sector_series: sectorSeries,
           sector_names: sectorNames,
+          live: true,
+        }),
+      };
+    } else if (mode === "sector") {
+      const code = String(event.queryStringParameters.code || "").toUpperCase();
+      if (!/^BK\d{4}$/.test(code)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: "invalid sector code" }) };
+      }
+      const [stocks, flow] = await Promise.all([
+        fetchSectorConstituents(code),
+        fetchFlowRows(`90.${code}`),
+      ]);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          code,
+          name: event.queryStringParameters.name || code,
+          stocks,
+          flow: flow.map((row) => ({ time: row.time, value: row.main })),
+          updated_at: flow.length ? flow[flow.length - 1].time : "",
           live: true,
         }),
       };

@@ -13,6 +13,16 @@
   to = "/index.html"
   status = 200
 
+[[redirects]]
+  from = "/sector/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/stock/*"
+  to = "/index.html"
+  status = 200
+
 # API 代理：资金流数据由 serverless function 处理
 [[redirects]]
   from = "/api/live/fund-flow"
