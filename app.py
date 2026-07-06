@@ -19,9 +19,11 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 HISTORY_DIR = DATA_DIR / "history"
 CURRENT_FILE = DATA_DIR / "dashboard-data.json"
+PERSISTENCE_FILE = DATA_DIR / "sector-persistence.json"
 BASE_URL = "https://fuyao.aicubes.cn"
 EAST_FLOW_URL = "https://push2delay.eastmoney.com/api/qt/stock/fflow/kline/get"
 EAST_RANK_URL = "https://push2delay.eastmoney.com/api/qt/clist/get"
+EAST_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
 PORT = int(os.getenv("DASHBOARD_PORT", "8765"))
 
 STATE: dict[str, Any] = {"refreshing": False, "message": "等待刷新", "updated_at": None}
@@ -123,14 +125,22 @@ def number(value: Any, default: float = 0.0) -> float:
 
 
 def eastmoney_get(url: str, params: dict[str, Any]) -> dict[str, Any]:
-    response = HTTP_SESSION.get(
-        url,
-        params=params,
-        headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
-        timeout=(8, 20),
-    )
-    response.raise_for_status()
-    return json.loads(response.content.decode("utf-8"))
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            response = HTTP_SESSION.get(
+                url,
+                params=params,
+                headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
+                timeout=(8, 25),
+            )
+            response.raise_for_status()
+            return json.loads(response.content.decode("utf-8"))
+        except (requests.RequestException, json.JSONDecodeError) as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(0.8 * (attempt + 1))
+    raise RuntimeError(f"Eastmoney request failed after retries: {last_error}")
 
 
 def fetch_flow_rows(secid: str) -> list[dict[str, Any]]:
@@ -240,6 +250,99 @@ def fetch_eastmoney_sector_detail(code: str, name: str = "") -> dict[str, Any]:
         "flow": [{"time": row["time"], "value": row["main"]} for row in flow_rows],
         "updated_at": flow_rows[-1]["time"] if flow_rows else "", "live": True,
     }
+
+
+def fetch_sector_daily_bars(code: str, name: str) -> list[dict[str, Any]]:
+    payload = eastmoney_get(
+        EAST_KLINE_URL,
+        {
+            "secid": f"90.{code}", "klt": "101", "fqt": "1",
+            "lmt": "18", "end": "20500101",
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+        },
+    )
+    rows = []
+    for line in ((payload.get("data") or {}).get("klines") or []):
+        parts = line.split(",")
+        if len(parts) < 11:
+            continue
+        rows.append({
+            "date": parts[0], "code": code, "name": name,
+            "change_pct": number(parts[8]), "turnover": number(parts[6]),
+        })
+    return rows
+
+
+def fetch_sector_persistence(days: int = 10, force: bool = False) -> dict[str, Any]:
+    if not force and PERSISTENCE_FILE.exists():
+        try:
+            cached = json.loads(PERSISTENCE_FILE.read_text(encoding="utf-8"))
+            cache_day = str(cached.get("updated_at", ""))[:10]
+            if cache_day == datetime.now().astimezone().date().isoformat() and len(cached.get("rows", [])) >= days:
+                return cached
+        except Exception:
+            pass
+
+    catalog = []
+    page = 1
+    while True:
+        catalog_payload = eastmoney_get(
+            EAST_RANK_URL,
+            {
+                "fid": "f62", "po": "1", "pz": "100", "pn": str(page),
+                "np": "1", "fltt": "2", "invt": "2", "fs": "m:90+t:2",
+                "fields": "f12,f14",
+            },
+        )
+        data = catalog_payload.get("data") or {}
+        page_rows = data.get("diff") or []
+        catalog.extend(
+            {"code": row.get("f12"), "name": row.get("f14")}
+            for row in page_rows
+            if row.get("f12") and row.get("f14")
+        )
+        total = int(number(data.get("total")))
+        if not page_rows or len(catalog) >= total:
+            break
+        page += 1
+    by_date: dict[str, list[dict[str, Any]]] = {}
+    failures = 0
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        pending = {
+            executor.submit(fetch_sector_daily_bars, row["code"], row["name"]): row
+            for row in catalog
+        }
+        for future in as_completed(pending):
+            try:
+                for bar in future.result():
+                    by_date.setdefault(bar["date"], []).append(bar)
+            except Exception:
+                failures += 1
+    result_rows = []
+    for trade_date in sorted(by_date)[-days:]:
+        ranked = sorted(
+            by_date[trade_date],
+            key=lambda row: (number(row.get("change_pct")), number(row.get("turnover"))),
+            reverse=True,
+        )
+        result_rows.append({
+            "date": trade_date,
+            "industries": [row["name"] for row in ranked[:3]],
+            "concepts": [],
+            "leaders": [
+                {"code": row["code"], "name": row["name"], "change_pct": row["change_pct"]}
+                for row in ranked[:10]
+            ],
+        })
+    result = {
+        "source": "东方财富全量板块日K回测",
+        "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "universe_count": len(catalog), "failure_count": failures,
+        "rows": result_rows,
+    }
+    PERSISTENCE_FILE.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return result
 
 
 def items(value: Any) -> list[dict[str, Any]]:
@@ -418,6 +521,16 @@ def collect() -> dict[str, Any]:
         {"date": row.get("trade_date"), "industries": [x.get("name") for x in row.get("industry_top", [])[:3]], "concepts": [x.get("name") for x in row.get("concept_top", [])[:3]]}
         for row in combined
     ]
+    try:
+        persistence = fetch_sector_persistence(10)
+        snapshot["sector_persistence"] = persistence.get("rows", [])
+        snapshot["sector_persistence_meta"] = {
+            key: persistence.get(key)
+            for key in ("source", "updated_at", "universe_count", "failure_count")
+        }
+    except Exception as exc:
+        snapshot["sector_persistence"] = snapshot["rotation"][-10:]
+        snapshot["sector_persistence_meta"] = {"source": "本地每日快照降级", "error": str(exc)}
     for leader in snapshot["leaders"]:
         leader["trend"] = [
             {"date": row.get("trade_date"), "price": next((number(x.get("last_price")) for x in row.get("leaders", []) if x.get("thscode") == leader.get("thscode")), None)}

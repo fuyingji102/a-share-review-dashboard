@@ -300,7 +300,7 @@ ${(()=>{const rows=industryStrength.slice(0,10);if(!rows.length)return'<div clas
 
 <!-- ═══ 10日板块持续性 ═══ -->
 <section class="card span6"><div class="cardhead"><div><h2>Sector Heat Persistence</h2><p>过去 10 个交易日进入行业 / 概念前三的持续性</p></div><span class="badge badge-blue">10D MEMORY</span></div>
-${persistenceHtml(d.rotation)}</section>
+${persistenceHtml(safe(d.sector_persistence).length?d.sector_persistence:d.rotation)}<div class="flowhint">${esc(d.sector_persistence_meta?.source||'每日快照积累')}</div></section>
 
 <!-- ═══ 第五屏：强度榜详情 + 情绪 ═══ -->
 <section class="card span5"><div class="cardhead"><div><h2>连板天梯</h2><p>最近20个交易日最高连板</p></div><span class="badge ${(s.max_board||0)>=5?'badge-warn':''}">${s.max_board||0}板</span></div>
