@@ -31,6 +31,8 @@ STATE: dict[str, Any] = {"refreshing": False, "message": "等待刷新", "update
 STATE_LOCK = threading.Lock()
 LIVE_CACHE: dict[str, Any] = {"time": 0.0, "payload": None}
 LIVE_CACHE_LOCK = threading.Lock()
+CATALOG_CACHE: dict[str, Any] = {"time": 0.0, "items": []}
+CATALOG_CACHE_LOCK = threading.Lock()
 HTTP_SESSION = requests.Session()
 # Codex's restricted command environment injects a deliberately dead local
 # proxy. Ignore only that sentinel; preserve genuine user/corporate proxies.
@@ -182,6 +184,55 @@ def fetch_sector_ranking(descending: bool) -> list[dict[str, Any]]:
             continue
         result.append({"code": item.get("f12"), "name": item.get("f14"), "value": value})
     return result[:8]
+
+
+def fetch_sector_catalog(force: bool = False) -> list[dict[str, Any]]:
+    with CATALOG_CACHE_LOCK:
+        if not force and CATALOG_CACHE["items"] and time.time() - CATALOG_CACHE["time"] < 21600:
+            return CATALOG_CACHE["items"]
+    groups = [("industry", "行业", "m:90+t:2"), ("concept", "概念", "m:90+t:3")]
+    result: list[dict[str, Any]] = []
+    for kind, label, market_filter in groups:
+        page = 1
+        collected = 0
+        while page <= 20:
+            payload = eastmoney_get(
+                EAST_RANK_URL,
+                {
+                    "fid": "f62", "po": "1", "pz": "100", "pn": str(page),
+                    "np": "1", "fltt": "2", "invt": "2", "fs": market_filter,
+                    "fields": "f12,f14",
+                },
+            )
+            data = payload.get("data") or {}
+            rows = data.get("diff") or []
+            result.extend(
+                {"code": item.get("f12"), "name": item.get("f14"), "type": kind, "type_label": label}
+                for item in rows if item.get("f12") and item.get("f14")
+            )
+            collected += len(rows)
+            if not rows or collected >= int(number(data.get("total"))):
+                break
+            page += 1
+    unique = list({row["code"]: row for row in result}.values())
+    unique.sort(key=lambda row: (row["type"], row["name"]))
+    with CATALOG_CACHE_LOCK:
+        CATALOG_CACHE.update(time=time.time(), items=unique)
+    return unique
+
+
+def fetch_sector_series(codes: list[str]) -> dict[str, Any]:
+    valid = list(dict.fromkeys(code.upper() for code in codes if code.upper().startswith("BK") and code[2:].isdigit()))[:8]
+    series: dict[str, list[dict[str, Any]]] = {}
+    with ThreadPoolExecutor(max_workers=min(6, max(1, len(valid)))) as executor:
+        pending = {executor.submit(fetch_flow_rows, f"90.{code}"): code for code in valid}
+        for future in as_completed(pending):
+            code = pending[future]
+            try:
+                series[code] = [{"time": row["time"], "value": row["main"]} for row in future.result()]
+            except Exception:
+                series[code] = []
+    return {"sector_series": series, "live": True}
 
 
 def fetch_eastmoney_fund_flow() -> dict[str, Any]:
@@ -719,6 +770,10 @@ class Handler(SimpleHTTPRequestHandler):
                         (query.get("code") or [""])[0].upper(),
                         (query.get("name") or [""])[0],
                     )
+                elif mode == "catalog":
+                    payload = {"items": fetch_sector_catalog(), "source": "东方财富行业/概念板块目录"}
+                elif mode == "series":
+                    payload = fetch_sector_series((query.get("codes") or [""])[0].split(","))
                 elif mode == "overview":
                     payload = fetch_live_overview()
                 else:

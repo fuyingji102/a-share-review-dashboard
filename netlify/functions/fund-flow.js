@@ -108,6 +108,45 @@ async function fetchSectorRanking(descending) {
     .slice(0, 8);
 }
 
+async function fetchSectorCatalog() {
+  const groups = [
+    ["industry", "行业", "m:90+t:2"],
+    ["concept", "概念", "m:90+t:3"],
+  ];
+  const pages = await Promise.all(groups.map(async ([type, typeLabel, fs]) => {
+    const params = {
+      fid: "f62", po: "1", pz: "100", np: "1",
+      fltt: "2", invt: "2", fs, fields: "f12,f14",
+    };
+    const first = await httpsGet(EAST_RANK_URL, { ...params, pn: "1" });
+    const firstData = first.data || {}, total = Number(firstData.total || 0);
+    const pageCount = Math.min(20, Math.max(1, Math.ceil(total / 100)));
+    const rest = await Promise.all(Array.from({ length: Math.max(0, pageCount - 1) }, (_, i) =>
+      httpsGet(EAST_RANK_URL, { ...params, pn: String(i + 2) })
+    ));
+    return [first, ...rest].flatMap((payload) => ((payload.data || {}).diff || []))
+      .filter((item) => item.f12 && item.f14)
+      .map((item) => ({ code: item.f12, name: item.f14, type, type_label: typeLabel }));
+  }));
+  return Array.from(new Map(pages.flat().map((row) => [row.code, row])).values())
+    .sort((a, b) => `${a.type}${a.name}`.localeCompare(`${b.type}${b.name}`, "zh-CN"));
+}
+
+async function fetchSectorSeries(codes) {
+  const valid = Array.from(new Set(codes.map((code) => String(code).toUpperCase())))
+    .filter((code) => /^BK\d{4}$/.test(code)).slice(0, 8);
+  const sectorSeries = {};
+  await Promise.all(valid.map(async (code) => {
+    try {
+      const rows = await fetchFlowRows(`90.${code}`);
+      sectorSeries[code] = rows.map((row) => ({ time: row.time, value: row.main }));
+    } catch {
+      sectorSeries[code] = [];
+    }
+  }));
+  return { sector_series: sectorSeries, live: true };
+}
+
 async function fetchSectorConstituents(code) {
   const payload = await httpsGet(EAST_RANK_URL, {
     pn: "1", pz: "100", po: "1", np: "1", fltt: "2", invt: "2",
@@ -201,6 +240,13 @@ exports.handler = async (event) => {
     if (mode === "overview") {
       const overview = await cached("overview", fetchLiveOverview);
       return { statusCode: 200, headers, body: JSON.stringify(overview) };
+    } else if (mode === "catalog") {
+      const items = await cached("catalog", fetchSectorCatalog);
+      return { statusCode: 200, headers, body: JSON.stringify({ items, source: "东方财富行业/概念板块目录", live: true }) };
+    } else if (mode === "series") {
+      const codes = String(event.queryStringParameters.codes || "").split(",");
+      const payload = await fetchSectorSeries(codes);
+      return { statusCode: 200, headers, body: JSON.stringify(payload) };
     } else if (mode === "market") {
       // ====== 大盘资金流 ======
       const [sh, sz, topIn, topOut] = await Promise.all([
