@@ -1,0 +1,137 @@
+[
+  {
+    "time": "2026-07-07 14:05",
+    "market": {
+      "turnover": 2181719445206.4001,
+      "turnover_change_pct": -19.012084773477845,
+      "up_count": 639,
+      "down_count": 4852,
+      "flat_count": 37,
+      "sample_count": 5528,
+      "temperature": 34
+    },
+    "sentiment": {
+      "limit_up_count": 31,
+      "limit_down_count": 38,
+      "max_board": 6,
+      "break_rate": null
+    },
+    "main_net": -717.10130938,
+    "sector_in": [
+      {
+        "code": "BK1328",
+        "name": "集成电路封测",
+        "value": 51.4924288,
+        "change_pct": 2.97,
+        "turnover": 52208348499.0
+      },
+      {
+        "code": "BK1301",
+        "name": "游戏Ⅲ",
+        "value": 12.6926224,
+        "change_pct": 0.58,
+        "turnover": 18699818054.0
+      },
+      {
+        "code": "BK1046",
+        "name": "游戏Ⅱ",
+        "value": 12.6926224,
+        "change_pct": 0.58,
+        "turnover": 18699818054.0
+      },
+      {
+        "code": "BK0486",
+        "name": "传媒",
+        "value": 11.71678976,
+        "change_pct": -1.65,
+        "turnover": 42555662316.0
+      },
+      {
+        "code": "BK1325",
+        "name": "半导体材料",
+        "value": 10.08335872,
+        "change_pct": 2.39,
+        "turnover": 51317060463.0
+      },
+      {
+        "code": "BK1329",
+        "name": "集成电路制造",
+        "value": 7.91371008,
+        "change_pct": 1.25,
+        "turnover": 27937119498.0
+      },
+      {
+        "code": "BK1326",
+        "name": "半导体设备",
+        "value": 7.28514816,
+        "change_pct": 2.18,
+        "turnover": 51286599426.0
+      },
+      {
+        "code": "BK1327",
+        "name": "分立器件",
+        "value": 7.252224,
+        "change_pct": 1.83,
+        "turnover": 31841338064.0
+      }
+    ],
+    "sector_out": [
+      {
+        "code": "BK1201",
+        "name": "电子",
+        "value": -108.70984704,
+        "change_pct": -1.4,
+        "turnover": 708573414709.0
+      },
+      {
+        "code": "BK1331",
+        "name": "数字芯片设计",
+        "value": -82.83574528,
+        "change_pct": -0.67,
+        "turnover": 162860321114.0
+      },
+      {
+        "code": "BK1205",
+        "name": "机械设备",
+        "value": -68.66777856,
+        "change_pct": -2.67,
+        "turnover": 199415684545.0
+      },
+      {
+        "code": "BK1216",
+        "name": "医药生物",
+        "value": -68.219328,
+        "change_pct": -3.66,
+        "turnover": 113172702326.0
+      },
+      {
+        "code": "BK0478",
+        "name": "有色金属",
+        "value": -57.59985664,
+        "change_pct": -2.78,
+        "turnover": 114684764109.0
+      },
+      {
+        "code": "BK1203",
+        "name": "非银金融",
+        "value": -57.12772352,
+        "change_pct": -2.34,
+        "turnover": 45112846293.0
+      },
+      {
+        "code": "BK0473",
+        "name": "证券Ⅱ",
+        "value": -52.11155456,
+        "change_pct": -2.5,
+        "turnover": 34852608122.0
+      },
+      {
+        "code": "BK1366",
+        "name": "证券Ⅲ",
+        "value": -52.11155456,
+        "change_pct": -2.5,
+        "turnover": 34852608122.0
+      }
+    ]
+  }
+]

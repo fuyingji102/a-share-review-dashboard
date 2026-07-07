@@ -14,6 +14,8 @@ const https = require("https");
 const EAST_FLOW_URL =
   "https://push2delay.eastmoney.com/api/qt/stock/fflow/kline/get";
 const EAST_RANK_URL = "https://push2delay.eastmoney.com/api/qt/clist/get";
+const EAST_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get";
+const EAST_TRENDS_URL = "https://push2his.eastmoney.com/api/qt/stock/trends2/get";
 const FUYAO_BASE_URL = "https://fuyao.aicubes.cn";
 
 // 节流缓存（30秒内重复请求不重复调用东方财富）
@@ -92,7 +94,7 @@ async function fetchFlowRows(secid) {
 /** 获取板块排名 */
 async function fetchSectorRanking(descending, fs = "m:90+t:2") {
   const payload = await httpsGet(EAST_RANK_URL, {
-    fid: "f62", po: descending ? "1" : "0", pz: "8",
+    fid: "f62", po: descending ? "1" : "0", pz: "15",
     pn: "1", np: "1", fltt: "2", invt: "2",
     fs, fields: "f12,f14,f3,f6,f62",
   });
@@ -105,7 +107,7 @@ async function fetchSectorRanking(descending, fs = "m:90+t:2") {
     .filter(
       (r) => (descending && r.value > 0) || (!descending && r.value < 0)
     )
-    .slice(0, 8);
+    .slice(0, 15);
 }
 
 async function fetchSectorCatalog() {
@@ -145,6 +147,59 @@ async function fetchSectorSeries(codes) {
     }
   }));
   return { sector_series: sectorSeries, live: true };
+}
+
+function stockSecid(code) {
+  const clean = String(code).split(".")[0];
+  return `${/^[569]/.test(clean) ? "1" : "0"}.${clean}`;
+}
+
+async function fetchStockTrends(code, days = 5) {
+  const payload = await httpsGet(EAST_TRENDS_URL, {
+    secid: stockSecid(code), ndays: String(days), iscr: "0", iscca: "0",
+    fields1: "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
+    fields2: "f51,f52,f53,f54,f55,f56,f57,f58",
+  });
+  const data = payload.data || {};
+  const rows = (data.trends || []).map((line) => {
+    const p = line.split(",");
+    return { time: p[0], open: Number(p[1] || 0), price: Number(p[2] || 0), high: Number(p[3] || 0), low: Number(p[4] || 0), volume: Number(p[5] || 0), amount: Number(p[6] || 0), avg: Number(p[7] || 0) };
+  });
+  return { name: data.name || code, pre_close: Number(data.preClose || 0), rows };
+}
+
+async function fetchStockKline(code, interval, limit) {
+  const payload = await httpsGet(EAST_KLINE_URL, {
+    secid: stockSecid(code), klt: interval, fqt: "1", lmt: String(limit), end: "20500101",
+    fields1: "f1,f2,f3,f4,f5,f6", fields2: "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+  });
+  return (((payload.data || {}).klines) || []).map((line) => {
+    const p = line.split(",");
+    return { time: p[0], open: Number(p[1] || 0), close: Number(p[2] || 0), high: Number(p[3] || 0), low: Number(p[4] || 0), volume: Number(p[5] || 0), amount: Number(p[6] || 0), amplitude: Number(p[7] || 0), change_pct: Number(p[8] || 0), change: Number(p[9] || 0), turnover_rate: Number(p[10] || 0) };
+  });
+}
+
+async function fetchStockChart(code) {
+  const clean = String(code).split(".")[0];
+  if (!/^\d{6}$/.test(clean)) throw new Error("invalid stock code");
+  const [trends, daily, monthly] = await Promise.all([
+    fetchStockTrends(clean, 5), fetchStockKline(clean, "101", 120), fetchStockKline(clean, "103", 72),
+  ]);
+  const fiveDay = trends.rows, latestDay = fiveDay.length ? fiveDay[fiveDay.length - 1].time.slice(0, 10) : "";
+  const minute = fiveDay.filter((row) => row.time.startsWith(latestDay));
+  const lastPrice = minute.length ? minute[minute.length - 1].price : 0, preClose = trends.pre_close;
+  const prices = minute.map((row) => row.price).filter((value) => value > 0);
+  const quote = { code: clean, name: trends.name || clean, price: lastPrice, prev_close: preClose, change_pct: lastPrice && preClose ? (lastPrice / preClose - 1) * 100 : 0, open: minute.length ? minute[0].open : 0, high: prices.length ? Math.max(...prices) : 0, low: prices.length ? Math.min(...prices) : 0, turnover: daily.length ? daily[daily.length - 1].amount : 0, turnover_rate: daily.length ? daily[daily.length - 1].turnover_rate : 0 };
+  return { code: clean, quote, minute, five_day: fiveDay, daily, monthly, live: true };
+}
+
+async function fetchStockSparklines(codes) {
+  const valid = Array.from(new Set(codes.map((code) => String(code).split(".")[0]))).filter((code) => /^\d{6}$/.test(code)).slice(0, 10);
+  const pairs = await Promise.all(valid.map(async (code) => {
+    try { const data = await fetchStockTrends(code, 1); return [code, data.rows.map((row) => ({ time: row.time, price: row.price }))]; }
+    catch { return [code, []]; }
+  }));
+  return { sparklines: Object.fromEntries(pairs), live: true };
 }
 
 async function fetchSectorConstituents(code) {
@@ -251,6 +306,13 @@ exports.handler = async (event) => {
       const codes = String(event.queryStringParameters.codes || "").split(",");
       const payload = await fetchSectorSeries(codes);
       return { statusCode: 200, headers, body: JSON.stringify(payload) };
+    } else if (mode === "stock") {
+      const payload = await fetchStockChart(event.queryStringParameters.code || "");
+      return { statusCode: 200, headers, body: JSON.stringify(payload) };
+    } else if (mode === "sparklines") {
+      const codes = String(event.queryStringParameters.codes || "").split(",");
+      const payload = await fetchStockSparklines(codes);
+      return { statusCode: 200, headers, body: JSON.stringify(payload) };
     } else if (mode === "market") {
       // ====== 大盘资金流 ======
       const [sh, sz, topIn, topOut] = await Promise.all([
@@ -281,7 +343,7 @@ exports.handler = async (event) => {
       const latest = marketRows[marketRows.length - 1] || {};
 
       // 板块分钟资金流
-      const sectorItems = [...topIn, ...topOut];
+      const sectorItems = [...topIn.slice(0, 8), ...topOut.slice(0, 8)];
       const sectorSeries = {};
       const sectorNames = {};
       await Promise.all(sectorItems.map(async (item) => {

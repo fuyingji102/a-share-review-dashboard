@@ -25,6 +25,7 @@ BASE_URL = "https://fuyao.aicubes.cn"
 EAST_FLOW_URL = "https://push2delay.eastmoney.com/api/qt/stock/fflow/kline/get"
 EAST_RANK_URL = "https://push2delay.eastmoney.com/api/qt/clist/get"
 EAST_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+EAST_TRENDS_URL = "https://push2his.eastmoney.com/api/qt/stock/trends2/get"
 PORT = int(os.getenv("DASHBOARD_PORT", "8765"))
 
 STATE: dict[str, Any] = {"refreshing": False, "message": "等待刷新", "updated_at": None}
@@ -172,7 +173,7 @@ def fetch_sector_ranking(descending: bool, market_filter: str = "m:90+t:2") -> l
     payload = eastmoney_get(
         EAST_RANK_URL,
         {
-            "fid": "f62", "po": "1" if descending else "0", "pz": "8",
+            "fid": "f62", "po": "1" if descending else "0", "pz": "15",
             "pn": "1", "np": "1", "fltt": "2", "invt": "2",
             "fs": market_filter, "fields": "f12,f14,f3,f6,f62",
         },
@@ -186,7 +187,7 @@ def fetch_sector_ranking(descending: bool, market_filter: str = "m:90+t:2") -> l
             "code": item.get("f12"), "name": item.get("f14"), "value": value,
             "change_pct": number(item.get("f3")), "turnover": number(item.get("f6")),
         })
-    return result[:8]
+    return result[:15]
 
 
 def fetch_sector_catalog(force: bool = False) -> list[dict[str, Any]]:
@@ -238,6 +239,97 @@ def fetch_sector_series(codes: list[str]) -> dict[str, Any]:
     return {"sector_series": series, "live": True}
 
 
+def stock_secid(code: str) -> str:
+    clean = code.split(".")[0]
+    return f"{'1' if clean.startswith(('5', '6', '9')) else '0'}.{clean}"
+
+
+def fetch_stock_trends(code: str, days: int = 5) -> dict[str, Any]:
+    payload = eastmoney_get(
+        EAST_TRENDS_URL,
+        {
+            "secid": stock_secid(code), "ndays": str(days), "iscr": "0", "iscca": "0",
+            "fields1": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
+        },
+    )
+    data = payload.get("data") or {}
+    rows = []
+    for line in data.get("trends") or []:
+        parts = line.split(",")
+        if len(parts) < 8:
+            continue
+        rows.append({
+            "time": parts[0], "open": number(parts[1]), "price": number(parts[2]),
+            "high": number(parts[3]), "low": number(parts[4]), "volume": number(parts[5]),
+            "amount": number(parts[6]), "avg": number(parts[7]),
+        })
+    return {"name": data.get("name") or code, "pre_close": number(data.get("preClose")), "rows": rows}
+
+
+def fetch_stock_kline(code: str, interval: str, limit: int) -> list[dict[str, Any]]:
+    payload = eastmoney_get(
+        EAST_KLINE_URL,
+        {
+            "secid": stock_secid(code), "klt": interval, "fqt": "1", "lmt": str(limit),
+            "end": "20500101", "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+        },
+    )
+    rows = []
+    for line in ((payload.get("data") or {}).get("klines") or []):
+        parts = line.split(",")
+        if len(parts) < 11:
+            continue
+        rows.append({
+            "time": parts[0], "open": number(parts[1]), "close": number(parts[2]),
+            "high": number(parts[3]), "low": number(parts[4]), "volume": number(parts[5]),
+            "amount": number(parts[6]), "amplitude": number(parts[7]),
+            "change_pct": number(parts[8]), "change": number(parts[9]), "turnover_rate": number(parts[10]),
+        })
+    return rows
+
+
+def fetch_stock_chart(code: str) -> dict[str, Any]:
+    clean = code.split(".")[0]
+    if not clean.isdigit() or len(clean) != 6:
+        raise ValueError("invalid stock code")
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        trends_future = executor.submit(fetch_stock_trends, clean, 5)
+        daily_future = executor.submit(fetch_stock_kline, clean, "101", 120)
+        monthly_future = executor.submit(fetch_stock_kline, clean, "103", 72)
+        trends, daily, monthly = trends_future.result(), daily_future.result(), monthly_future.result()
+    five_day = trends["rows"]
+    latest_day = str(five_day[-1]["time"])[:10] if five_day else ""
+    minute = [row for row in five_day if str(row["time"]).startswith(latest_day)]
+    last_price = number((minute[-1] if minute else {}).get("price"))
+    pre_close = number(trends.get("pre_close"))
+    prices = [number(row.get("price")) for row in minute if number(row.get("price")) > 0]
+    quote = {
+        "code": clean, "name": trends.get("name") or clean, "price": last_price,
+        "prev_close": pre_close, "change_pct": ((last_price / pre_close - 1) * 100) if last_price and pre_close else 0,
+        "open": number((minute[0] if minute else {}).get("open")),
+        "high": max(prices) if prices else 0, "low": min(prices) if prices else 0,
+        "turnover": number((daily[-1] if daily else {}).get("amount")),
+        "turnover_rate": number((daily[-1] if daily else {}).get("turnover_rate")),
+    }
+    return {"code": clean, "quote": quote, "minute": minute, "five_day": five_day, "daily": daily, "monthly": monthly, "live": True}
+
+
+def fetch_stock_sparklines(codes: list[str]) -> dict[str, Any]:
+    valid = list(dict.fromkeys(code.split(".")[0] for code in codes if code.split(".")[0].isdigit()))[:10]
+    result: dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=min(6, max(1, len(valid)))) as executor:
+        pending = {executor.submit(fetch_stock_trends, code, 1): code for code in valid}
+        for future in as_completed(pending):
+            code = pending[future]
+            try:
+                result[code] = [{"time": row["time"], "price": row["price"]} for row in future.result()["rows"]]
+            except Exception:
+                result[code] = []
+    return {"sparklines": result, "live": True}
+
+
 def fetch_eastmoney_fund_flow() -> dict[str, Any]:
     with ThreadPoolExecutor(max_workers=6) as executor:
         sh_future = executor.submit(fetch_flow_rows, "1.000001")
@@ -258,7 +350,7 @@ def fetch_eastmoney_fund_flow() -> dict[str, Any]:
                 row[field] += item[field]
     market_rows = [market_by_time[key] for key in sorted(market_by_time)]
 
-    sector_items = top_in + top_out
+    sector_items = top_in[:8] + top_out[:8]
     sector_series: dict[str, list[dict[str, Any]]] = {}
     with ThreadPoolExecutor(max_workers=4) as executor:
         pending = {executor.submit(fetch_flow_rows, f"90.{item['code']}"): item for item in sector_items}
@@ -453,7 +545,7 @@ def fetch_sector_daily_bars(code: str, name: str) -> list[dict[str, Any]]:
         EAST_KLINE_URL,
         {
             "secid": f"90.{code}", "klt": "101", "fqt": "1",
-            "lmt": "18", "end": "20500101",
+            "lmt": "60", "end": "20500101",
             "fields1": "f1,f2,f3,f4,f5,f6",
             "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
         },
@@ -515,13 +607,18 @@ def fetch_sector_persistence(days: int = 10, force: bool = False) -> dict[str, A
                     by_date.setdefault(bar["date"], []).append(bar)
             except Exception:
                 failures += 1
-    result_rows = []
-    for trade_date in sorted(by_date)[-days:]:
-        ranked = sorted(
+    all_dates = sorted(by_date)
+    rankings: dict[str, list[dict[str, Any]]] = {
+        trade_date: sorted(
             by_date[trade_date],
             key=lambda row: (number(row.get("change_pct")), number(row.get("turnover"))),
             reverse=True,
         )
+        for trade_date in all_dates
+    }
+    result_rows = []
+    for trade_date in all_dates[-days:]:
+        ranked = rankings[trade_date]
         result_rows.append({
             "date": trade_date,
             "industries": [row["name"] for row in ranked[:3]],
@@ -530,12 +627,60 @@ def fetch_sector_persistence(days: int = 10, force: bool = False) -> dict[str, A
                 {"code": row["code"], "name": row["name"], "change_pct": row["change_pct"]}
                 for row in ranked[:10]
             ],
+            "laggards": [
+                {"code": row["code"], "name": row["name"], "change_pct": row["change_pct"]}
+                for row in ranked[-10:]
+            ],
+        })
+    backtest_start = f"{datetime.now().astimezone().year}-06-01"
+    high_low = []
+    for index, trade_date in enumerate(all_dates):
+        if trade_date < backtest_start or index == 0:
+            continue
+        ranked = rankings[trade_date]
+        prior_dates = all_dates[max(0, index - 5):index]
+        prior_hot = {
+            row["name"]
+            for prior_date in prior_dates
+            for row in rankings[prior_date][:10]
+        }
+        high_candidates = [row for row in ranked if row["name"] in prior_hot and number(row.get("change_pct")) < 0]
+        low_candidates = [row for row in ranked[:20] if row["name"] not in prior_hot and number(row.get("change_pct")) > 0]
+        if not high_candidates or not low_candidates:
+            continue
+        from_row = min(high_candidates, key=lambda row: number(row.get("change_pct")))
+        to_row = low_candidates[0]
+
+        def streak(name: str, negative: bool) -> int:
+            count = 0
+            for date_cursor in reversed(all_dates[: index + 1]):
+                match = next((row for row in rankings[date_cursor] if row["name"] == name), None)
+                if not match:
+                    break
+                change = number(match.get("change_pct"))
+                rank = rankings[date_cursor].index(match) + 1
+                passed = change < 0 if negative else change > 0 and rank <= 30
+                if not passed:
+                    break
+                count += 1
+            return count
+
+        from_days, to_days = streak(from_row["name"], True), streak(to_row["name"], False)
+        confirmed = from_days >= 2 and to_days >= 2
+        high_low.append({
+            "date": trade_date,
+            "from": {"code": from_row["code"], "name": from_row["name"], "change_pct": from_row["change_pct"]},
+            "to": {"code": to_row["code"], "name": to_row["name"], "change_pct": to_row["change_pct"]},
+            "from_days": from_days, "to_days": to_days,
+            "status": "两日确认" if confirmed else "轮动候选",
+            "confidence": min(95, 35 + min(from_days, 3) * 10 + min(to_days, 3) * 15),
+            "method": "前5日强势板块转弱 → 新进入前20的低位板块增强",
         })
     result = {
         "source": "东方财富全量板块日K回测",
         "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "universe_count": len(catalog), "failure_count": failures,
-        "rows": result_rows,
+        "rows": result_rows, "high_low": high_low,
     }
     PERSISTENCE_FILE.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
@@ -718,14 +863,16 @@ def collect() -> dict[str, Any]:
         for row in combined
     ]
     try:
-        persistence = fetch_sector_persistence(10)
+        persistence = fetch_sector_persistence(30)
         snapshot["sector_persistence"] = persistence.get("rows", [])
+        snapshot["high_low_backtest"] = persistence.get("high_low", [])
         snapshot["sector_persistence_meta"] = {
             key: persistence.get(key)
             for key in ("source", "updated_at", "universe_count", "failure_count")
         }
     except Exception as exc:
         snapshot["sector_persistence"] = snapshot["rotation"][-10:]
+        snapshot["high_low_backtest"] = []
         snapshot["sector_persistence_meta"] = {"source": "本地每日快照降级", "error": str(exc)}
     for leader in snapshot["leaders"]:
         leader["trend"] = [
@@ -788,6 +935,10 @@ class Handler(SimpleHTTPRequestHandler):
                     payload = {"items": fetch_sector_catalog(), "source": "东方财富行业/概念板块目录"}
                 elif mode == "series":
                     payload = fetch_sector_series((query.get("codes") or [""])[0].split(","))
+                elif mode == "stock":
+                    payload = fetch_stock_chart((query.get("code") or [""])[0])
+                elif mode == "sparklines":
+                    payload = fetch_stock_sparklines((query.get("codes") or [""])[0].split(","))
                 elif mode == "overview":
                     payload = fetch_live_overview((query.get("force") or ["0"])[0] in {"1", "true", "yes"})
                 else:
